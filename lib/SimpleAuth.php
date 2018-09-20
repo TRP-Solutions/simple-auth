@@ -77,7 +77,7 @@ class SimpleAuth {
 			$this->add_access($rs->permission,false);
 		}
 		
-		$this->user_id = $user_id;		
+		$this->user_id = $user_id;
 		$this->savesession();
 		
 		return (object) ['success'=>true];

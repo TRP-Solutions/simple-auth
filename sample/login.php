@@ -18,6 +18,9 @@ $form->label('Password','password');
 $form->password('password')->at(['required'=>null]);
 $form->te(' default: passw0rd');
 $form->el('br');
+$form->label('Autologin','autologin');
+$form->checkbox('autologin');
+$form->el('br');
 
 if(isset($_GET['error'])) {
 	$form->el('pre',['style'=>'color:red;'])->te($auth->error_string($_GET['error']));

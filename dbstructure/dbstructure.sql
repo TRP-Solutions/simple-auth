@@ -15,6 +15,14 @@ CREATE TABLE IF NOT EXISTS `auth_access` (
 	PRIMARY KEY (`user_id`,`permission`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `auth_token` (
+	`user_id` int(10) UNSIGNED NOT NULL,
+	`token` varchar(44) NOT NULL,
+	`expires` DATETIME NOT NULL,
+	PRIMARY KEY (`token`),
+	KEY `user_id` (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `auth_user` (
 	`id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 	`username` varchar(50) NOT NULL,

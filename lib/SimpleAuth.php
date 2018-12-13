@@ -12,6 +12,10 @@ class SimpleAuth {
 	private $db_pfix = 'auth_';
 	private $session_var = 'auth';
 	private $lifetime = null;
+	private $cookie_pfix = 'auth_';
+	private $autologin_expire = 2592000; // 30 days in seconds
+	private $autologin_bytes = 32;
+	private $autologin_secure = true;
 	
 	function __construct($options = []){
 		if(isset($options['db_host'])) $this->db_host = $options['db_host'];
@@ -21,6 +25,10 @@ class SimpleAuth {
 		if(isset($options['db_pfix'])) $this->db_pfix = $options['db_pfix'];
 		if(isset($options['session_var'])) $this->session_var = $options['session_var'];
 		if(isset($options['lifetime'])) $this->lifetime = $options['lifetime'];
+		if(isset($options['cookie_pfix'])) $this->cookie_pfix = $options['cookie_pfix'];
+		if(isset($options['autologin_expire'])) $this->autologin_expire = $options['autologin_expire'];
+		if(isset($options['autologin_bytes'])) $this->autologin_bytes = $options['autologin_bytes'];
+		if(isset($options['autologin_secure'])) $this->autologin_secure = $options['autologin_secure'];
 		
 		if($this->lifetime) {
 			ini_set('session.gc_maxlifetime', $this->lifetime);
@@ -47,7 +55,7 @@ class SimpleAuth {
 		return false;
 	}
 	
-	public function login($username,$password){
+	public function login($username,$password,$autologin = false){
 		if(!$username){
 			return (object) ['error'=>'USERNAME_NOTSET'];
 		}
@@ -69,16 +77,10 @@ class SimpleAuth {
 			return (object) ['error'=>'PASSWORD_WRONG'];
 		}
 		
-		$user_id = $rs->id;
-		$table = $this->db_pfix.'access';
-		$sql = "SELECT permission FROM $table WHERE user_id='$user_id'";
-		$query = $this->db_conn->query($sql);
-		while($rs = $query->fetch_object()){
-			$this->add_access($rs->permission,false);
-		}
-		
-		$this->user_id = $user_id;
+		$this->user_id = $rs->id;
+		$this->update_access();
 		$this->savesession();
+		if($autologin) $this->write_autologin_cookie();
 		
 		return (object) ['success'=>true];
 	}
@@ -92,6 +94,7 @@ class SimpleAuth {
 		unset($_SESSION[$this->session_var]);
 		$this->user_id = 0;
 		$this->access = [];
+		$this->delete_autologin_cookie();
 	}
 	
 	public function create_user($username,$password,$password_confirm){
@@ -134,6 +137,41 @@ class SimpleAuth {
 		$this->db_conn->query($sql);
 		return (object) ['success'=>true];
 	}
+
+	private function update_access(){
+		if(isset($this->user_id)){
+			$table = $this->db_pfix.'access';
+			$sql = "SELECT permission FROM $table WHERE user_id='$this->user_id'";
+			$query = $this->db_conn->query($sql);
+			while($rs = $query->fetch_object()){
+				$this->add_access($rs->permission,false);
+			}
+		}
+	}
+
+	private function generate_secure_token(){
+		return base64_encode(random_bytes($this->autologin_bytes));
+	}
+
+	private function write_autologin_cookie(){
+		$token = $this->generate_secure_token();
+		$table = $this->db_pfix.'token';
+
+		$sql = "DELETE FROM $table WHERE expires<NOW()";
+		$this->db_conn->query($sql);
+		$sql = "INSERT INTO $table (user_id,token,expires)
+			VALUES ($this->user_id,'$token',DATE_ADD(NOW(),INTERVAL $this->autologin_expire SECOND))";
+		$this->db_conn->query($sql);
+
+		$expire = time()+$this->autologin_expire;
+		if(is_float($expire)) $expire = 0; // if Unix time is overflowing, default to session length;
+		setcookie($this->cookie_pfix.'autologin', $token, $expire, '', '', $this->autologin_secure); // require HTTPS
+	}
+
+	private function delete_autologin_cookie(){
+		$name = $this->cookie_pfix.'autologin';
+		if(isset($_COOKIE[$name])) setcookie($name, '', 1);
+	}
 	
 	private function savesession(){
 		$json = json_encode([
@@ -149,6 +187,26 @@ class SimpleAuth {
 			$json = json_decode($_SESSION[$this->session_var]);
 			$this->user_id = $json->user_id;
 			$this->access = $json->access;
+		} elseif(isset($_COOKIE[$this->cookie_pfix.'autologin'])){
+			$this->open_db();
+			$token = $this->db_conn->real_escape_string($_COOKIE[$this->cookie_pfix.'autologin']);
+			$table = $this->db_pfix.'token';
+			$sql = "SELECT user_id,token,expires<=NOW() as expired FROM $table WHERE token='$token'";
+			$query = $this->db_conn->query($sql);
+			if($query->num_rows!=1){
+				$this->delete_autologin_cookie();
+				return;
+			}
+			$rs = $query->fetch_object();
+			if($rs->expired){
+				$this->delete_autologin_cookie();
+				$sql = "DELETE FROM $table WHERE expires<NOW()";
+				$this->db_conn->query($sql);
+				return;
+			}
+			$this->user_id = $rs->user_id;
+			$this->update_access();
+			$this->savesession();
 		}
 	}
 	

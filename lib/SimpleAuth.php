@@ -29,6 +29,7 @@ class SimpleAuth {
 		if(isset($options['autologin_expire'])) $this->autologin_expire = $options['autologin_expire'];
 		if(isset($options['autologin_bytes'])) $this->autologin_bytes = $options['autologin_bytes'];
 		if(isset($options['autologin_secure'])) $this->autologin_secure = $options['autologin_secure'];
+		if(isset($options['onlogin'])) $this->onlogin = $options['onlogin'];
 		
 		if($this->lifetime) {
 			ini_set('session.gc_maxlifetime', $this->lifetime);
@@ -80,6 +81,7 @@ class SimpleAuth {
 		$this->update_access();
 		$this->savesession();
 		if($autologin) $this->write_autologin_cookie();
+		$this->login_successful();
 		
 		return (object) ['success'=>true];
 	}
@@ -206,6 +208,7 @@ class SimpleAuth {
 			$this->user_id = $rs->user_id;
 			$this->update_access();
 			$this->savesession();
+			$this->login_successful();
 		}
 	}
 	
@@ -215,6 +218,13 @@ class SimpleAuth {
 			if($this->db_conn->connect_error) {
 				die('SimpleAuth::open_db (Connection Error)');
 			}
+		}
+	}
+
+	private function login_successful(){
+		if(isset($this->onlogin) && is_callable($this->onlogin)){
+			$callable = $this->onlogin;
+			$callable($this);
 		}
 	}
 	

@@ -5,6 +5,7 @@ require_once('../lib/SimpleAuth.php');
 $auth = new SimpleAuth([
 	'db_user' => 'my_user',
 	'db_pass' => 'my_password',
-	'db_base' => 'my_db'
+	'db_base' => 'my_db',
+	'onlogin' => function($auth){$auth->add_access('other');}
 ]);
 ?>

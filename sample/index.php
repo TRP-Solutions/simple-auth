@@ -27,5 +27,9 @@ if($auth->access('admin')) {
 	$ul->el('li')->te('admin access');
 }
 
+if($auth->access('other')) {
+	$ul->el('li')->te('other access');
+}
+
 echo $doc;
 ?>

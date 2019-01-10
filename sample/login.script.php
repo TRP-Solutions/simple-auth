@@ -7,7 +7,6 @@ if(isset($result->error)) {
 	header('location:login.php?error='.$result->error.'&username='.$_POST['username']);
 }
 else {
-	$auth->add_access('access');
 	header('location:index.php');
 }
 ?>

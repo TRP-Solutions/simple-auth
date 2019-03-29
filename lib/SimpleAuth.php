@@ -16,6 +16,7 @@ class SimpleAuth {
 	private $autologin_expire = 2592000; // 30 days in seconds
 	private $autologin_bytes = 32;
 	private $autologin_secure = true;
+	private $charset = 'utf8';
 	
 	function __construct($options = []){
 		if(isset($options['db_host'])) $this->db_host = $options['db_host'];
@@ -29,6 +30,7 @@ class SimpleAuth {
 		if(isset($options['autologin_expire'])) $this->autologin_expire = $options['autologin_expire'];
 		if(isset($options['autologin_bytes'])) $this->autologin_bytes = $options['autologin_bytes'];
 		if(isset($options['autologin_secure'])) $this->autologin_secure = $options['autologin_secure'];
+		if(isset($options['charset'])) $this->charset = $options['charset'];
 		if(isset($options['onlogin'])) $this->onlogin = $options['onlogin'];
 		
 		if($this->lifetime) {
@@ -214,10 +216,11 @@ class SimpleAuth {
 	
 	private function open_db(){
 		if(!$this->db_conn){
-			$this->db_conn = new mysqli('localhost',$this->db_user,$this->db_pass,$this->db_base);
+			$this->db_conn = new mysqli($this->db_host,$this->db_user,$this->db_pass,$this->db_base);
 			if($this->db_conn->connect_error) {
 				die('SimpleAuth::open_db (Connection Error)');
 			}
+			$this->db_conn->set_charset($this->charset);
 		}
 	}
 

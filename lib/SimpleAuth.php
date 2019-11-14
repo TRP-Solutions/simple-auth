@@ -160,7 +160,13 @@ class SimpleAuth {
 		$token = $this->generate_secure_token();
 		$table = $this->db_pfix.'token';
 
-		$sql = "DELETE FROM $table WHERE expires<NOW()";
+		$name = $this->cookie_pfix.'autologin';
+		if(isset($_COOKIE[$name])){
+			$old_token = $this->db_conn->real_escape_string($_COOKIE[$name]);
+			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
+		} else {
+			$sql = "DELETE FROM $table WHERE expires<NOW()";
+		}
 		$this->db_conn->query($sql);
 		$sql = "INSERT INTO $table (user_id,token,expires)
 			VALUES ($this->user_id,'$token',DATE_ADD(NOW(),INTERVAL $this->autologin_expire SECOND))";
@@ -168,7 +174,14 @@ class SimpleAuth {
 
 		$expire = time()+$this->autologin_expire;
 		if(is_float($expire)) $expire = 0; // if Unix time is overflowing, default to session length;
-		setcookie($this->cookie_pfix.'autologin', $token, $expire, '', '', $this->autologin_secure); // require HTTPS
+		setcookie($name, $token, $expire, '', '', $this->autologin_secure); // require HTTPS
+	}
+
+	private function update_autologin_cookie(){
+		$name = $this->cookie_pfix.'autologin';
+		if(!isset($_COOKIE[$name])) return;
+		$expire = time()+$this->autologin_expire;
+		setcookie($name, $_COOKIE[$name], $expire, '','', $this->autologin_secure);
 	}
 
 	private function delete_autologin_cookie(){
@@ -190,6 +203,7 @@ class SimpleAuth {
 			$json = json_decode($_SESSION[$this->session_var]);
 			$this->user_id = $json->user_id;
 			$this->access = $json->access;
+			$this->update_autologin_cookie();
 		} elseif(isset($_COOKIE[$this->cookie_pfix.'autologin'])){
 			$this->open_db();
 			$token = $this->db_conn->real_escape_string($_COOKIE[$this->cookie_pfix.'autologin']);
@@ -208,6 +222,7 @@ class SimpleAuth {
 				return;
 			}
 			$this->user_id = $rs->user_id;
+			$this->write_autologin_cookie();
 			$this->update_access();
 			$this->savesession();
 			$this->login_successful();

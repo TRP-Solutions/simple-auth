@@ -186,7 +186,14 @@ class SimpleAuth {
 
 	private function delete_autologin_cookie(){
 		$name = $this->cookie_pfix.'autologin';
-		if(isset($_COOKIE[$name])) setcookie($name, '', 1);
+		if(isset($_COOKIE[$name])){
+			$this->open_db();
+			$old_token = $this->db_conn->real_escape_string($_COOKIE[$name]);
+			$table = $this->db_pfix.'token';
+			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
+			$this->db_conn->query($sql);
+			setcookie($name, '', 1);
+		}
 	}
 	
 	private function savesession(){
@@ -203,7 +210,6 @@ class SimpleAuth {
 			$json = json_decode($_SESSION[$this->session_var]);
 			$this->user_id = $json->user_id;
 			$this->access = $json->access;
-			$this->update_autologin_cookie();
 		} elseif(isset($_COOKIE[$this->cookie_pfix.'autologin'])){
 			$this->open_db();
 			$token = $this->db_conn->real_escape_string($_COOKIE[$this->cookie_pfix.'autologin']);

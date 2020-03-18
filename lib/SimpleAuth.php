@@ -275,4 +275,3 @@ class SimpleAuth {
 			return $code;
 	}
 }
-?>

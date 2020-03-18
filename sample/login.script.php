@@ -9,4 +9,3 @@ if(isset($result->error)) {
 else {
 	header('location:index.php');
 }
-?>

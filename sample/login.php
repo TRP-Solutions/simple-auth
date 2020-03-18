@@ -30,4 +30,3 @@ if(isset($_GET['error'])) {
 $form->el('button',['type'=>'submit'])->te('Login');
 
 echo $doc;
-?>

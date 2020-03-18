@@ -3,9 +3,9 @@ require_once('../../git_heal-document/lib/HealHTML.php'); // https://github.com/
 require_once('../lib/SimpleAuth.php');
 
 $auth = new SimpleAuth([
-	'db_user' => 'my_user',
-	'db_pass' => 'my_password',
-	'db_base' => 'my_db',
-	'onlogin' => function($auth){$auth->add_access('other');}
+	'db_user' => 'root',
+	'db_pass' => 'mysqlnimda',
+	'db_base' => 'simpleauth',
+	'onlogin' => function($auth){$auth->add_access('other');},
+	'autologin_secure' => false
 ]);
-?>

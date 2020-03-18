@@ -32,4 +32,3 @@ if($auth->access('other')) {
 }
 
 echo $doc;
-?>

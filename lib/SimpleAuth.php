@@ -1,4 +1,8 @@
 <?php
+/*
+SimpleAuth is licensed under the Apache License 2.0 license
+https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
+*/
 class SimpleAuth {
 	private $user_id = 0;
 	private $access = [];

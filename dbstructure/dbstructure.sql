@@ -3,39 +3,38 @@
 -- https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 --
 
-
 --
 -- Database
 --
 
-CREATE DATABASE IF NOT EXISTS `my_db` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE `my_db`;
+CREATE DATABASE IF NOT EXISTS `simpleauth`;
+USE `simpleauth`;
 
 --
 -- Tables
 --
 
 CREATE TABLE IF NOT EXISTS `auth_access` (
-	`user_id` int(10) UNSIGNED NOT NULL,
+	`user_id` int(10) unsigned NOT NULL,
 	`permission` varchar(30) NOT NULL,
 	PRIMARY KEY (`user_id`,`permission`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `auth_token` (
-	`user_id` int(10) UNSIGNED NOT NULL,
+	`user_id` int(10) unsigned NOT NULL,
 	`token` varchar(44) NOT NULL,
 	`expires` DATETIME NOT NULL,
 	PRIMARY KEY (`token`),
 	KEY `user_id` (`user_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `auth_user` (
-	`id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`username` varchar(50) NOT NULL,
 	`password` varchar(255) NOT NULL,
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `username` (`username`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Data

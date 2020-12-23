@@ -5,7 +5,7 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
 require_once('include.php');
 
-$result = $auth->login($_POST['username'],$_POST['password'],$_POST['autologin']);
+$result = SimpleAuth::login($_POST['username'],$_POST['password'],$_POST['autologin']);
 
 if(isset($result->error)) {
 	header('location:login.php?error='.$result->error.'&username='.$_POST['username']);

@@ -4,56 +4,57 @@ SimpleAuth is licensed under the Apache License 2.0 license
 https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
 class SimpleAuth {
-	private $user_id = 0;
-	private $access = [];
-	private $db_conn = null;
+	private static $user_id = 0;
+	private static $access = [];
+	private static $db_conn = null;
 	
 	// configurable variables
-	private $db_host = 'localhost';
-	private $db_user = '';
-	private $db_pass = '';
-	private $db_base = '';
-	private $db_pfix = 'auth_';
-	private $session_var = 'auth';
-	private $lifetime = null;
-	private $cookie_pfix = 'auth_';
-	private $autologin_expire = 2592000; // 30 days in seconds
-	private $autologin_bytes = 32;
-	private $autologin_secure = true;
-	private $charset = 'utf8';
+	private static $db_host = 'localhost';
+	private static $db_user = '';
+	private static $db_pass = '';
+	private static $db_base = '';
+	private static $db_pfix = 'auth_';
+	private static $session_var = 'auth';
+	private static $lifetime = null;
+	private static $cookie_pfix = 'auth_';
+	private static $autologin_expire = 2592000; // 30 days in seconds
+	private static $autologin_bytes = 32;
+	private static $autologin_secure = true;
+	private static $charset = 'utf8';
+	private static $onlogin = null;
 	
-	function __construct($options = []){
-		if(isset($options['db_host'])) $this->db_host = $options['db_host'];
-		if(isset($options['db_user'])) $this->db_user = $options['db_user'];
-		if(isset($options['db_pass'])) $this->db_pass = $options['db_pass'];
-		if(isset($options['db_base'])) $this->db_base = $options['db_base'];
-		if(isset($options['db_pfix'])) $this->db_pfix = $options['db_pfix'];
-		if(isset($options['session_var'])) $this->session_var = $options['session_var'];
-		if(isset($options['lifetime'])) $this->lifetime = $options['lifetime'];
-		if(isset($options['cookie_pfix'])) $this->cookie_pfix = $options['cookie_pfix'];
-		if(isset($options['autologin_expire'])) $this->autologin_expire = $options['autologin_expire'];
-		if(isset($options['autologin_bytes'])) $this->autologin_bytes = $options['autologin_bytes'];
-		if(isset($options['autologin_secure'])) $this->autologin_secure = $options['autologin_secure'];
-		if(isset($options['charset'])) $this->charset = $options['charset'];
-		if(isset($options['onlogin'])) $this->onlogin = $options['onlogin'];
+	public static function configure($options = []){
+		if(isset($options['db_host'])) self::$db_host = $options['db_host'];
+		if(isset($options['db_user'])) self::$db_user = $options['db_user'];
+		if(isset($options['db_pass'])) self::$db_pass = $options['db_pass'];
+		if(isset($options['db_base'])) self::$db_base = $options['db_base'];
+		if(isset($options['db_pfix'])) self::$db_pfix = $options['db_pfix'];
+		if(isset($options['session_var'])) self::$session_var = $options['session_var'];
+		if(isset($options['lifetime'])) self::$lifetime = $options['lifetime'];
+		if(isset($options['cookie_pfix'])) self::$cookie_pfix = $options['cookie_pfix'];
+		if(isset($options['autologin_expire'])) self::$autologin_expire = $options['autologin_expire'];
+		if(isset($options['autologin_bytes'])) self::$autologin_bytes = $options['autologin_bytes'];
+		if(isset($options['autologin_secure'])) self::$autologin_secure = $options['autologin_secure'];
+		if(isset($options['charset'])) self::$charset = $options['charset'];
+		if(isset($options['onlogin'])) self::$onlogin = $options['onlogin'];
 		
-		if($this->lifetime) {
-			ini_set('session.gc_maxlifetime', $this->lifetime);
+		if(self::$lifetime) {
+			ini_set('session.gc_maxlifetime', self::$lifetime);
 		}
 		
 		session_start();
-		$this->loadsession();
+		self::loadsession();
 	}
 	
-	public function access(...$permission_list){
-		if(!$this->access) return false;
+	public static function access(...$permission_list){
+		if(!self::$access) return false;
 		
 		foreach($permission_list as $permission){
-			if(is_string($permission) && in_array($permission,$this->access)) return true;
+			if(is_string($permission) && in_array($permission,self::$access)) return true;
 			if(is_array($permission)){
 				$valid = true;
 				foreach($permission as $string){
-					if(!in_array($string,$this->access)) $valid = false;
+					if(!in_array($string,self::$access)) $valid = false;
 				}
 				if($valid) return true;
 			} 
@@ -61,19 +62,19 @@ class SimpleAuth {
 		return false;
 	}
 	
-	public function login($username,$password,$autologin = false){
+	public static function login($username,$password,$autologin = false){
 		if(!$username){
 			return (object) ['error'=>'USERNAME_NOTSET'];
 		}
 		if(!$password){
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
-		$this->open_db();
+		self::open_db();
 		
-		$username = $this->db_conn->real_escape_string($username);
-		$table = $this->db_pfix.'user';
+		$username = self::$db_conn->real_escape_string($username);
+		$table = self::$db_pfix.'user';
 		$sql = "SELECT id,password FROM $table WHERE username='$username'";
-		$query = $this->db_conn->query($sql);
+		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
 			return (object) ['error'=>'USERNAME_UNKNOWN'];
 		}
@@ -83,40 +84,40 @@ class SimpleAuth {
 			return (object) ['error'=>'PASSWORD_WRONG'];
 		}
 		
-		$this->user_id = $rs->id;
-		$this->update_access();
-		$this->savesession();
-		if($autologin) $this->write_autologin_cookie();
-		$this->login_successful();
+		self::$user_id = $rs->id;
+		self::update_access();
+		self::savesession();
+		if($autologin) self::write_autologin_cookie();
+		self::login_successful();
 		
 		return (object) ['success'=>true];
 	}
 	
-	public function add_access($permission,$savesession = true){
-		$this->access[] = $permission;
-		if($savesession) $this->savesession();
+	public static function add_access($permission,$savesession = true){
+		self::$access[] = $permission;
+		if($savesession) self::savesession();
 	}
 	
-	public function logout(){
-		unset($_SESSION[$this->session_var]);
-		$this->user_id = 0;
-		$this->access = [];
-		$this->delete_autologin_cookie();
+	public static function logout(){
+		unset($_SESSION[self::$session_var]);
+		self::$user_id = 0;
+		self::$access = [];
+		self::delete_autologin_cookie();
 	}
 	
-	public function create_user($username,$password,$password_confirm){
+	public static function create_user($username,$password,$password_confirm){
 		if(!$username){
 			return (object) ['error'=>'USERNAME_NOTSET'];
 		}
 		if(!$password){
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
-		$this->open_db();
+		self::open_db();
 		
-		$username = $this->db_conn->real_escape_string($username);
-		$table = $this->db_pfix.'user';
+		$username = self::$db_conn->real_escape_string($username);
+		$table = self::$db_pfix.'user';
 		$sql = "SELECT id,password FROM $table WHERE username='$username'";
-		$query = $this->db_conn->query($sql);
+		$query = self::$db_conn->query($sql);
 		if($query->num_rows==1){
 			return (object) ['error'=>'USERNAME_INUSE'];
 		}
@@ -125,142 +126,147 @@ class SimpleAuth {
 		}
 		$password = password_hash($password, PASSWORD_DEFAULT);
 		$sql = "INSERT INTO $table (username,password) VALUES ('$username','$password')";
-		$this->db_conn->query($sql);
+		self::$db_conn->query($sql);
 		
-		return (object) ['success'=>true,'user_id'=>$this->db_conn->insert_id];
+		return (object) ['success'=>true,'user_id'=>self::$db_conn->insert_id];
 	}
 	
-	public function change_password($password){
+	public static function change_password($password){
 		if(!$password){
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
-		if(!$this->user_id){
+		if(!self::$user_id){
 			return (object) ['error'=>'USER_NOT_LOGGED_IN'];
 		}
-		$this->open_db();
+		self::open_db();
 		$password = password_hash($password, PASSWORD_DEFAULT);
-		$table = $this->db_pfix.'user';
-		$sql = "UPDATE $table SET password='$password' WHERE id=$this->user_id";
-		$this->db_conn->query($sql);
+		$table = self::$db_pfix.'user';
+		$user_id = self::$user_id;
+		$sql = "UPDATE $table SET password='$password' WHERE id=$user_id";
+		self::$db_conn->query($sql);
 		return (object) ['success'=>true];
 	}
 
-	private function update_access(){
-		if(isset($this->user_id)){
-			$table = $this->db_pfix.'access';
-			$sql = "SELECT permission FROM $table WHERE user_id='$this->user_id'";
-			$query = $this->db_conn->query($sql);
+	private static function update_access(){
+		if(isset(self::$user_id)){
+			$table = self::$db_pfix.'access';
+			$user_id = self::$user_id;
+			$sql = "SELECT permission FROM $table WHERE user_id='$user_id'";
+			$query = self::$db_conn->query($sql);
 			while($rs = $query->fetch_object()){
-				$this->add_access($rs->permission,false);
+				self::add_access($rs->permission,false);
 			}
 		}
 	}
 
-	private function generate_secure_token(){
-		return base64_encode(random_bytes($this->autologin_bytes));
+	private static function generate_secure_token(){
+		return base64_encode(random_bytes(self::$autologin_bytes));
 	}
 
-	private function write_autologin_cookie(){
-		$token = $this->generate_secure_token();
-		$table = $this->db_pfix.'token';
+	private static function write_autologin_cookie(){
+		$token = self::generate_secure_token();
+		$table = self::$db_pfix.'token';
 
-		$name = $this->cookie_pfix.'autologin';
+		$name = self::$cookie_pfix.'autologin';
 		if(isset($_COOKIE[$name])){
-			$old_token = $this->db_conn->real_escape_string($_COOKIE[$name]);
+			$old_token = self::$db_conn->real_escape_string($_COOKIE[$name]);
 			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
 		} else {
 			$sql = "DELETE FROM $table WHERE expires<NOW()";
 		}
-		$this->db_conn->query($sql);
-		$sql = "INSERT INTO $table (user_id,token,expires)
-			VALUES ($this->user_id,'$token',DATE_ADD(NOW(),INTERVAL $this->autologin_expire SECOND))";
-		$this->db_conn->query($sql);
+		self::$db_conn->query($sql);
 
-		$expire = time()+$this->autologin_expire;
+		$expire = (int) self::$autologin_expire;
+		$user_id = self::$user_id;
+		$sql = "INSERT INTO $table (user_id,token,expires)
+			VALUES ($user_id,'$token',DATE_ADD(NOW(),INTERVAL $expire SECOND))";
+		self::$db_conn->query($sql);
+
+		$expire = time()+self::$autologin_expire;
 		if(is_float($expire)) $expire = 0; // if Unix time is overflowing, default to session length;
-		setcookie($name, $token, $expire, '', '', $this->autologin_secure); // require HTTPS
+		setcookie($name, $token, $expire, '', '', self::$autologin_secure); // require HTTPS
 	}
 
 	private function update_autologin_cookie(){
-		$name = $this->cookie_pfix.'autologin';
+		$name = self::$cookie_pfix.'autologin';
 		if(!isset($_COOKIE[$name])) return;
-		$expire = time()+$this->autologin_expire;
-		setcookie($name, $_COOKIE[$name], $expire, '','', $this->autologin_secure);
+		$expire = time()+self::$autologin_expire;
+		setcookie($name, $_COOKIE[$name], $expire, '','', self::$autologin_secure);
 	}
 
-	private function delete_autologin_cookie(){
-		$name = $this->cookie_pfix.'autologin';
+	private static function delete_autologin_cookie(){
+		$name = self::$cookie_pfix.'autologin';
 		if(isset($_COOKIE[$name])){
-			$this->open_db();
-			$old_token = $this->db_conn->real_escape_string($_COOKIE[$name]);
-			$table = $this->db_pfix.'token';
+			self::open_db();
+			$old_token = self::$db_conn->real_escape_string($_COOKIE[$name]);
+			$table = self::$db_pfix.'token';
 			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
-			$this->db_conn->query($sql);
+			self::$db_conn->query($sql);
 			setcookie($name, '', 1);
 		}
 	}
 	
-	private function savesession(){
+	private static function savesession(){
 		$json = json_encode([
-			'user_id' => $this->user_id,
-			'access' => $this->access
+			'user_id' => self::$user_id,
+			'access' => self::$access
 		]);
 		
-		$_SESSION[$this->session_var] = $json;
+		$_SESSION[self::$session_var] = $json;
 	}
 	
-	private function loadsession(){
-		if(isset($_SESSION[$this->session_var])){
-			$json = json_decode($_SESSION[$this->session_var]);
-			$this->user_id = $json->user_id;
-			$this->access = $json->access;
-		} elseif(isset($_COOKIE[$this->cookie_pfix.'autologin'])){
-			$this->open_db();
-			$token = $this->db_conn->real_escape_string($_COOKIE[$this->cookie_pfix.'autologin']);
-			$table = $this->db_pfix.'token';
+	static private function loadsession(){
+		if(isset($_SESSION[self::$session_var])){
+			$json = json_decode($_SESSION[self::$session_var]);
+			self::$user_id = $json->user_id;
+			self::$access = $json->access;
+		} elseif(isset($_COOKIE[self::$cookie_pfix.'autologin'])){
+			self::open_db();
+			$token = self::$db_conn->real_escape_string($_COOKIE[self::$cookie_pfix.'autologin']);
+			$table = self::$db_pfix.'token';
 			$sql = "SELECT user_id,token,expires<=NOW() as expired FROM $table WHERE token='$token'";
-			$query = $this->db_conn->query($sql);
+			$query = self::$db_conn->query($sql);
 			if($query->num_rows!=1){
-				$this->delete_autologin_cookie();
+				self::delete_autologin_cookie();
 				return;
 			}
 			$rs = $query->fetch_object();
 			if($rs->expired){
-				$this->delete_autologin_cookie();
+				self::delete_autologin_cookie();
 				$sql = "DELETE FROM $table WHERE expires<NOW()";
-				$this->db_conn->query($sql);
+				self::$db_conn->query($sql);
 				return;
 			}
-			$this->user_id = $rs->user_id;
-			$this->write_autologin_cookie();
-			$this->update_access();
-			$this->savesession();
-			$this->login_successful();
+			self::$user_id = $rs->user_id;
+			self::write_autologin_cookie();
+			self::update_access();
+			self::savesession();
+			self::login_successful();
 		}
 	}
 	
-	private function open_db(){
-		if(!$this->db_conn){
-			$this->db_conn = new mysqli($this->db_host,$this->db_user,$this->db_pass,$this->db_base);
-			if($this->db_conn->connect_error) {
+	private static function open_db(){
+		if(!self::$db_conn){
+			self::$db_conn = new mysqli(self::$db_host,self::$db_user,self::$db_pass,self::$db_base);
+			if(self::$db_conn->connect_error) {
 				die('SimpleAuth::open_db (Connection Error)');
 			}
-			$this->db_conn->set_charset($this->charset);
+			self::$db_conn->set_charset(self::$charset);
 		}
 	}
 
-	private function login_successful(){
-		if(isset($this->onlogin) && is_callable($this->onlogin)){
-			$callable = $this->onlogin;
-			$callable($this);
+	private static function login_successful(){
+		if(isset(self::$onlogin) && is_callable(self::$onlogin)){
+			$callable = self::$onlogin;
+			$callable(self);
 		}
 	}
 	
-	public function user_id(){
-		return $this->user_id;
+	public static function user_id(){
+		return self::$user_id;
 	}
 	
-	public function error_string($code){
+	public static function error_string($code){
 		if($code=='USERNAME_NOTSET')
 			return "Username not set";
 		else if($code=='USERNAME_UNKNOWN')

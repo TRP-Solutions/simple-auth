@@ -17,6 +17,7 @@ class SimpleAuth {
 	private static $session_var = 'auth';
 	private static $lifetime = null;
 	private static $cookie_pfix = 'auth_';
+	private static $cookie_path = '';
 	private static $autologin_expire = 2592000; // 30 days in seconds
 	private static $autologin_bytes = 32;
 	private static $autologin_secure = true;
@@ -32,6 +33,7 @@ class SimpleAuth {
 		if(isset($options['session_var'])) self::$session_var = $options['session_var'];
 		if(isset($options['lifetime'])) self::$lifetime = $options['lifetime'];
 		if(isset($options['cookie_pfix'])) self::$cookie_pfix = $options['cookie_pfix'];
+		if(isset($options['cookie_path'])) self::$cookie_path = $options['cookie_path'];
 		if(isset($options['autologin_expire'])) self::$autologin_expire = $options['autologin_expire'];
 		if(isset($options['autologin_bytes'])) self::$autologin_bytes = $options['autologin_bytes'];
 		if(isset($options['autologin_secure'])) self::$autologin_secure = $options['autologin_secure'];
@@ -184,14 +186,14 @@ class SimpleAuth {
 
 		$expire = time()+self::$autologin_expire;
 		if(is_float($expire)) $expire = 0; // if Unix time is overflowing, default to session length;
-		setcookie($name, $token, $expire, '', '', self::$autologin_secure); // require HTTPS
+		setcookie($name, $token, $expire, self::$cookie_path, '', self::$autologin_secure); // require HTTPS
 	}
 
 	private function update_autologin_cookie(){
 		$name = self::$cookie_pfix.'autologin';
 		if(!isset($_COOKIE[$name])) return;
 		$expire = time()+self::$autologin_expire;
-		setcookie($name, $_COOKIE[$name], $expire, '','', self::$autologin_secure);
+		setcookie($name, $_COOKIE[$name], $expire, self::$cookie_path, '', self::$autologin_secure);
 	}
 
 	private static function delete_autologin_cookie(){
@@ -202,7 +204,7 @@ class SimpleAuth {
 			$table = self::$db_pfix.'token';
 			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
 			self::$db_conn->query($sql);
-			setcookie($name, '', 1);
+			setcookie($name, '', 1, self::$cookie_path);
 		}
 	}
 	
@@ -258,7 +260,7 @@ class SimpleAuth {
 	private static function login_successful(){
 		if(isset(self::$onlogin) && is_callable(self::$onlogin)){
 			$callable = self::$onlogin;
-			$callable(self);
+			$callable();
 		}
 	}
 	

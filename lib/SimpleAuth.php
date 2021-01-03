@@ -7,7 +7,7 @@ class SimpleAuth {
 	private static $user_id = 0;
 	private static $access = [];
 	private static $db_conn = null;
-	
+
 	// configurable variables
 	private static $db_host = 'localhost';
 	private static $db_user = '';
@@ -19,11 +19,11 @@ class SimpleAuth {
 	private static $cookie_pfix = 'auth_';
 	private static $cookie_path = '';
 	private static $autologin_expire = 2592000; // 30 days in seconds
-	private static $autologin_bytes = 32;
 	private static $autologin_secure = true;
-	private static $charset = 'utf8';
+	private static $token_bytes = 32;
+	private static $charset = 'utf8mb4';
 	private static $onlogin = null;
-	
+
 	public static function configure($options = []){
 		if(isset($options['db_host'])) self::$db_host = $options['db_host'];
 		if(isset($options['db_user'])) self::$db_user = $options['db_user'];
@@ -35,22 +35,22 @@ class SimpleAuth {
 		if(isset($options['cookie_pfix'])) self::$cookie_pfix = $options['cookie_pfix'];
 		if(isset($options['cookie_path'])) self::$cookie_path = $options['cookie_path'];
 		if(isset($options['autologin_expire'])) self::$autologin_expire = $options['autologin_expire'];
-		if(isset($options['autologin_bytes'])) self::$autologin_bytes = $options['autologin_bytes'];
 		if(isset($options['autologin_secure'])) self::$autologin_secure = $options['autologin_secure'];
+		if(isset($options['token_bytes'])) self::$token_bytes = $options['token_bytes'];
 		if(isset($options['charset'])) self::$charset = $options['charset'];
 		if(isset($options['onlogin'])) self::$onlogin = $options['onlogin'];
-		
+
 		if(self::$lifetime) {
 			ini_set('session.gc_maxlifetime', self::$lifetime);
 		}
-		
+
 		session_start();
 		self::loadsession();
 	}
-	
+
 	public static function access(...$permission_list){
 		if(!self::$access) return false;
-		
+
 		foreach($permission_list as $permission){
 			if(is_string($permission) && in_array($permission,self::$access)) return true;
 			if(is_array($permission)){
@@ -59,11 +59,11 @@ class SimpleAuth {
 					if(!in_array($string,self::$access)) $valid = false;
 				}
 				if($valid) return true;
-			} 
+			}
 		}
 		return false;
 	}
-	
+
 	public static function login($username,$password,$autologin = false){
 		if(!$username){
 			return (object) ['error'=>'USERNAME_NOTSET'];
@@ -72,42 +72,45 @@ class SimpleAuth {
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
 		self::open_db();
-		
-		$username = self::$db_conn->real_escape_string($username);
+
+		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT id,password FROM $table WHERE username='$username'";
+		$sql = "SELECT id,password,confirmation FROM $table WHERE username='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
 			return (object) ['error'=>'USERNAME_UNKNOWN'];
 		}
-		
+
 		$rs = $query->fetch_object();
 		if(!password_verify($password,$rs->password)){
 			return (object) ['error'=>'PASSWORD_WRONG'];
 		}
-		
+		if(!empty($rs->confirmation)){
+			return (object) ['error'=>'NOT_CONFIRMED'];
+		}
+
 		self::$user_id = $rs->id;
 		self::update_access();
 		self::savesession();
 		if($autologin) self::write_autologin_cookie();
 		self::login_successful();
-		
+
 		return (object) ['success'=>true];
 	}
-	
+
 	public static function add_access($permission,$savesession = true){
 		self::$access[] = $permission;
 		if($savesession) self::savesession();
 	}
-	
+
 	public static function logout(){
 		unset($_SESSION[self::$session_var]);
 		self::$user_id = 0;
 		self::$access = [];
 		self::delete_autologin_cookie();
 	}
-	
-	public static function create_user($username,$password,$password_confirm){
+
+	public static function create_user($username,$password,$password_confirm,$confirmation = false){
 		if(!$username){
 			return (object) ['error'=>'USERNAME_NOTSET'];
 		}
@@ -115,8 +118,8 @@ class SimpleAuth {
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
 		self::open_db();
-		
-		$username = self::$db_conn->real_escape_string($username);
+
+		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
 		$sql = "SELECT id,password FROM $table WHERE username='$username'";
 		$query = self::$db_conn->query($sql);
@@ -126,13 +129,54 @@ class SimpleAuth {
 		if($password!=$password_confirm){
 			return (object) ['error'=>'PASSWORD_NOMATCH'];
 		}
+
 		$password = password_hash($password, PASSWORD_DEFAULT);
-		$sql = "INSERT INTO $table (username,password) VALUES ('$username','$password')";
+		if($confirmation) {
+			$token = self::generate_secure_token();
+			$token_sql = password_hash($token, PASSWORD_DEFAULT);
+			$confirmation = base64_encode($username.':'.$token);
+		}
+		else {
+			$token = null;
+		}
+
+		$sql = "INSERT INTO $table (username,password,confirmation) VALUES ('$username','$password','$token_sql')";
 		self::$db_conn->query($sql);
-		
-		return (object) ['success'=>true,'user_id'=>self::$db_conn->insert_id];
+
+		return (object) ['success'=>true,'user_id'=>self::$db_conn->insert_id,'confirmation'=>$confirmation];
 	}
-	
+
+	public static function confirm($confirmation){
+		if(!$confirmation){
+			return (object) ['error'=>'CONFIRMATION_NOTSET'];
+		}
+
+		list($username,$token) = explode(':',base64_decode($confirmation));
+
+		self::open_db();
+
+		$username = trim(self::$db_conn->real_escape_string($username));
+		$table = self::$db_pfix.'user';
+		$sql = "SELECT id,confirmation FROM $table WHERE username='$username'";
+		$query = self::$db_conn->query($sql);
+		if($query->num_rows!=1){
+			return (object) ['error'=>'USERNAME_UNKNOWN'];
+		}
+
+		$rs = $query->fetch_object();
+		if(empty($rs->confirmation)){
+			return (object) ['error'=>'ALREADY_CONFIRMED'];
+		}
+		if(!password_verify($token,$rs->confirmation)){
+			return (object) ['error'=>'CONFIRMATION_WRONG'];
+		}
+
+		$sql = "UPDATE $table SET confirmation='' WHERE id=$rs->id";
+		self::$db_conn->query($sql);
+
+		return (object) ['success'=>true];
+	}
+
 	public static function change_password($password){
 		if(!$password){
 			return (object) ['error'=>'PASSWORD_NOTSET'];
@@ -162,7 +206,7 @@ class SimpleAuth {
 	}
 
 	private static function generate_secure_token(){
-		return base64_encode(random_bytes(self::$autologin_bytes));
+		return base64_encode(random_bytes(self::$token_bytes));
 	}
 
 	private static function write_autologin_cookie(){
@@ -207,16 +251,16 @@ class SimpleAuth {
 			setcookie($name, '', 1, self::$cookie_path);
 		}
 	}
-	
+
 	private static function savesession(){
 		$json = json_encode([
 			'user_id' => self::$user_id,
 			'access' => self::$access
 		]);
-		
+
 		$_SESSION[self::$session_var] = $json;
 	}
-	
+
 	static private function loadsession(){
 		if(isset($_SESSION[self::$session_var])){
 			$json = json_decode($_SESSION[self::$session_var]);
@@ -246,7 +290,7 @@ class SimpleAuth {
 			self::login_successful();
 		}
 	}
-	
+
 	private static function open_db(){
 		if(!self::$db_conn){
 			self::$db_conn = new mysqli(self::$db_host,self::$db_user,self::$db_pass,self::$db_base);
@@ -263,11 +307,11 @@ class SimpleAuth {
 			$callable();
 		}
 	}
-	
+
 	public static function user_id(){
 		return self::$user_id;
 	}
-	
+
 	public static function error_string($code){
 		if($code=='USERNAME_NOTSET')
 			return "Username not set";
@@ -283,6 +327,14 @@ class SimpleAuth {
 			return "Wrong password";
 		else if($code=='PASSWORD_NOMATCH')
 			return "Password does not match the confirm password";
+		else if($code=='CONFIRMATION_NOTSET')
+			return "Confirmation not set";
+		else if($code=='NOT_CONFIRMED')
+			return "User is not confirmed";
+		else if($code=='ALREADY_CONFIRMED')
+			return "User is already confirmed";
+		else if($code=='CONFIRMATION_WRONG')
+			return "Wrong confirmation";
 		else
 			return $code;
 	}

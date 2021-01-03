@@ -11,23 +11,24 @@ if(SimpleAuth::user_id()) {
 }
 
 $doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: login');
+list($head,$body) = $doc->html('simple-auth :: create user');
 
-$form = $body->form('login.script.php','post');
+$form = $body->form('create.script.php','post');
 $form->label('Username','username');
 $form->input('username',empty($_GET['username']) ? '' : $_GET['username'])->at(['required'=>null]);
-$form->te(' default: johndoe');
 $form->el('br');
 $form->label('Password','password');
 $form->password('password')->at(['required'=>null]);
-$form->te(' default: passw0rd');
 $form->el('br');
-$form->label('Autologin','autologin');
-$form->checkbox('autologin');
+$form->label('Repeat Password','password_confirm');
+$form->password('password_confirm')->at(['required'=>null]);
+$form->el('br');
+$form->label('Use confirmation','confirmation');
+$form->checkbox('confirmation');
 $form->el('br');
 
 if(isset($_GET['error'])) {
-	$form->el('pre',['style'=>'color:red;'])->te(SimpleAuth::error_string($_GET['error']));
+	$form->el('pre',['style'=>'color:red;'])->te($auth->error_string($_GET['error']));
 	$form->el('br');
 }
 

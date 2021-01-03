@@ -5,10 +5,10 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
 require_once('include.php');
 
-$result = SimpleAuth::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']));
+$result = SimpleAuth::confirm($_POST['confirmation']);
 
 if(isset($result->error)) {
-	header('location:login.php?error='.$result->error.'&username='.$_POST['username']);
+	header('location:confirmation.php?error='.$result->error.'&confirmation='.$_POST['confirmation']);
 }
 else {
 	header('location:index.php');

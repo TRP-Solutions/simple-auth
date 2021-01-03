@@ -6,18 +6,20 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 require_once('include.php');
 
 $doc = new HealHTML();
-list($head,$head) = $doc->html('simple-auth :: index');
+list($head,$body) = $doc->html('simple-auth :: index');
 
 if(!SimpleAuth::user_id()) {
-	$doc->el('h3')->te('Not logged in!');
-	$doc->a('login.php','Login');
+	$body->el('h3')->te('Not logged in!');
+	$body->a('login.php','Login');
+	$body->el('br');
+	$body->a('create.php','Create user');
 }
 else {
-	$doc->el('h3')->te('user_id: '.SimpleAuth::user_id());
-	$doc->a('logout.script.php','Logout');
+	$body->el('h3')->te('user_id: '.SimpleAuth::user_id());
+	$body->a('logout.script.php','Logout');
 }
 
-$ul = $doc->el('ul');
+$ul = $body->el('ul');
 
 if(true) {
 	$ul->el('li')->te('guest access');

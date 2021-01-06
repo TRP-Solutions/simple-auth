@@ -155,9 +155,9 @@ class SimpleAuth {
 
 		self::open_db();
 
-		$username = trim(self::$db_conn->real_escape_string($username));
+		$sql_username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT id,confirmation FROM $table WHERE username='$username'";
+		$sql = "SELECT id,confirmation FROM $table WHERE username='$sql_username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
 			return (object) ['error'=>'USERNAME_UNKNOWN'];
@@ -174,7 +174,7 @@ class SimpleAuth {
 		$sql = "UPDATE $table SET confirmation='' WHERE id=$rs->id";
 		self::$db_conn->query($sql);
 
-		return (object) ['success'=>true];
+		return (object) ['success'=>true,'username'=>$username];
 	}
 
 	public static function change_password($password){

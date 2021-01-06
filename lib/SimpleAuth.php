@@ -174,7 +174,7 @@ class SimpleAuth {
 		$sql = "UPDATE $table SET confirmation='' WHERE id=$rs->id";
 		self::$db_conn->query($sql);
 
-		return (object) ['success'=>true,'username'=>$username];
+		return (object) ['success'=>true,'user_id'=>$rs->id,'username'=>$username];
 	}
 
 	public static function change_password($password){

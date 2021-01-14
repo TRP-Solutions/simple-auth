@@ -99,8 +99,17 @@ class SimpleAuth {
 	}
 
 	public static function add_access($permission,$savesession = true){
-		self::$access[] = $permission;
-		if($savesession) self::savesession();
+		if(($key = array_search($permission,self::$access)) === false) {
+			self::$access[] = $permission;
+			if($savesession) self::savesession();
+		}
+	}
+
+	public static function remove_access($permission,$savesession = true){
+		if(($key = array_search($permission,self::$access)) !== false) {
+			unset(self::$access[$key]);
+			if($savesession) self::savesession();
+		}
 	}
 
 	public static function logout(){

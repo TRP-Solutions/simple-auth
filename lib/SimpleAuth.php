@@ -44,6 +44,7 @@ class SimpleAuth {
 			ini_set('session.gc_maxlifetime', self::$lifetime);
 		}
 
+		session_set_cookie_params(self::$lifetime,self::$cookie_path);
 		session_start();
 		self::loadsession();
 	}

@@ -76,7 +76,7 @@ class SimpleAuth {
 
 		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT id,password,confirmation FROM $table WHERE username='$username'";
+		$sql = "SELECT id,password,confirmation FROM `$table` WHERE username='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
 			return (object) ['error'=>'USERNAME_UNKNOWN'];
@@ -90,7 +90,7 @@ class SimpleAuth {
 			return (object) ['error'=>'NOT_CONFIRMED'];
 		}
 
-		self::$user_id = $rs->id;
+		self::$user_id = (int) $rs->id;
 		self::update_access();
 		self::savesession();
 		if($autologin) self::write_autologin_cookie();
@@ -131,7 +131,7 @@ class SimpleAuth {
 
 		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT id,password FROM $table WHERE username='$username'";
+		$sql = "SELECT id,password FROM `$table` WHERE username='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows==1){
 			return (object) ['error'=>'USERNAME_INUSE'];
@@ -150,7 +150,7 @@ class SimpleAuth {
 			$token_sql = '';
 		}
 
-		$sql = "INSERT INTO $table (username,password,confirmation) VALUES ('$username','$password','$token_sql')";
+		$sql = "INSERT INTO `$table` (username,password,confirmation) VALUES ('$username','$password','$token_sql')";
 		self::$db_conn->query($sql);
 
 		return (object) ['success'=>true,'user_id'=>self::$db_conn->insert_id,'confirmation'=>$confirmation];
@@ -167,7 +167,7 @@ class SimpleAuth {
 
 		$sql_username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT id,confirmation FROM $table WHERE username='$sql_username'";
+		$sql = "SELECT id,confirmation FROM `$table` WHERE username='$sql_username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
 			return (object) ['error'=>'USERNAME_UNKNOWN'];
@@ -181,25 +181,78 @@ class SimpleAuth {
 			return (object) ['error'=>'CONFIRMATION_WRONG'];
 		}
 
-		$sql = "UPDATE $table SET confirmation='' WHERE id=$rs->id";
+		$sql = "UPDATE `$table` SET confirmation='' WHERE id=$rs->id";
 		self::$db_conn->query($sql);
 
 		return (object) ['success'=>true,'user_id'=>$rs->id,'username'=>$username];
 	}
 
-	public static function change_password($password){
+	public static function change_password($password,$user_id = null){
 		if(!$password){
 			return (object) ['error'=>'PASSWORD_NOTSET'];
 		}
-		if(!self::$user_id){
+		if(!self::$user_id && $user_id===null){
 			return (object) ['error'=>'USER_NOT_LOGGED_IN'];
 		}
 		self::open_db();
 		$password = password_hash($password, PASSWORD_DEFAULT);
 		$table = self::$db_pfix.'user';
-		$user_id = self::$user_id;
-		$sql = "UPDATE $table SET password='$password' WHERE id=$user_id";
+		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
+		if(empty($user_id)) {
+			return (object) ['error'=>'INVALID_USERID'];
+		}
+		$sql = "UPDATE `$table` SET password='$password' WHERE id='$user_id'";
 		self::$db_conn->query($sql);
+		return (object) ['success'=>true];
+	}
+
+	public static function change_username($username,$user_id = null){
+		if(!$username){
+			return (object) ['error'=>'USERNAME_NOTSET'];
+		}
+		if(!self::$user_id && $user_id===null){
+			return (object) ['error'=>'USER_NOT_LOGGED_IN'];
+		}
+		self::open_db();
+		$username = trim(self::$db_conn->real_escape_string($username));
+		$table = self::$db_pfix.'user';
+		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
+		if(empty($user_id)) {
+			return (object) ['error'=>'INVALID_USERID'];
+		}
+		$sql = "SELECT id,password FROM `$table` WHERE `username`='$username' AND id!='$user_id'";
+		$query = self::$db_conn->query($sql);
+		if($query->num_rows==1){
+			return (object) ['error'=>'USERNAME_INUSE'];
+		}
+
+		$sql = "UPDATE `$table` SET `username`='$username' WHERE id='$user_id'";
+		self::$db_conn->query($sql);
+
+		return (object) ['success'=>true];
+	}
+
+	public static function change_access($access_list,$user_id = null){
+		if(!self::$user_id && $user_id===null){
+			return (object) ['error'=>'USER_NOT_LOGGED_IN'];
+		}
+		self::open_db();
+		$table = self::$db_pfix.'access';
+		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
+		if(empty($user_id)) {
+			return (object) ['error'=>'INVALID_USERID'];
+		}
+
+		$sql = "DELETE FROM `$table` WHERE `user_id`='$user_id'";
+		self::$db_conn->query($sql);
+		if(is_array($access_list)) {
+			foreach($access_list as $access) {
+				$permission = self::$db_conn->real_escape_string($access);
+				$sql = "INSERT INTO `$table` (`user_id`,`permission`) VALUES ('$user_id','$permission')";
+				self::$db_conn->query($sql);
+			}
+		}
+
 		return (object) ['success'=>true];
 	}
 
@@ -207,12 +260,26 @@ class SimpleAuth {
 		if(isset(self::$user_id)){
 			$table = self::$db_pfix.'access';
 			$user_id = self::$user_id;
-			$sql = "SELECT permission FROM $table WHERE user_id='$user_id'";
+			$sql = "SELECT permission FROM `$table` WHERE user_id='$user_id'";
 			$query = self::$db_conn->query($sql);
 			while($rs = $query->fetch_object()){
 				self::add_access($rs->permission,false);
 			}
 		}
+	}
+
+	public static function get_access($user_id = null){
+		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
+		if(empty($user_id)) {
+			return (object) ['error'=>'INVALID_USERID'];
+		}
+
+		self::open_db();
+		$table = self::$db_pfix.'access';
+		$sql = "SELECT GROUP_CONCAT(`permission`) as permission FROM `$table` WHERE `user_id`='$user_id'";
+		$permission = explode(',',self::$db_conn->query($sql)->fetch_object()->permission);
+
+		return (object) ['success'=>true,'permission'=>$permission];
 	}
 
 	private static function generate_secure_token(){
@@ -226,15 +293,15 @@ class SimpleAuth {
 		$name = self::$cookie_pfix.'autologin';
 		if(isset($_COOKIE[$name])){
 			$old_token = self::$db_conn->real_escape_string($_COOKIE[$name]);
-			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
+			$sql = "DELETE FROM `$table` WHERE expires<NOW() OR token='$old_token';";
 		} else {
-			$sql = "DELETE FROM $table WHERE expires<NOW()";
+			$sql = "DELETE FROM `$table` WHERE expires<NOW()";
 		}
 		self::$db_conn->query($sql);
 
 		$expire = (int) self::$autologin_expire;
 		$user_id = self::$user_id;
-		$sql = "INSERT INTO $table (user_id,token,expires)
+		$sql = "INSERT INTO `$table` (user_id,token,expires)
 			VALUES ($user_id,'$token',DATE_ADD(NOW(),INTERVAL $expire SECOND))";
 		self::$db_conn->query($sql);
 
@@ -256,7 +323,7 @@ class SimpleAuth {
 			self::open_db();
 			$old_token = self::$db_conn->real_escape_string($_COOKIE[$name]);
 			$table = self::$db_pfix.'token';
-			$sql = "DELETE FROM $table WHERE expires<NOW() OR token='$old_token';";
+			$sql = "DELETE FROM `$table` WHERE expires<NOW() OR token='$old_token';";
 			self::$db_conn->query($sql);
 			setcookie($name, '', 1, self::$cookie_path);
 		}
@@ -280,7 +347,7 @@ class SimpleAuth {
 			self::open_db();
 			$token = self::$db_conn->real_escape_string($_COOKIE[self::$cookie_pfix.'autologin']);
 			$table = self::$db_pfix.'token';
-			$sql = "SELECT user_id,token,expires<=NOW() as expired FROM $table WHERE token='$token'";
+			$sql = "SELECT user_id,token,expires<=NOW() as expired FROM `$table` WHERE token='$token'";
 			$query = self::$db_conn->query($sql);
 			if($query->num_rows!=1){
 				self::delete_autologin_cookie();
@@ -289,11 +356,11 @@ class SimpleAuth {
 			$rs = $query->fetch_object();
 			if($rs->expired){
 				self::delete_autologin_cookie();
-				$sql = "DELETE FROM $table WHERE expires<NOW()";
+				$sql = "DELETE FROM `$table` WHERE expires<NOW()";
 				self::$db_conn->query($sql);
 				return;
 			}
-			self::$user_id = $rs->user_id;
+			self::$user_id = (int) $rs->user_id;
 			self::write_autologin_cookie();
 			self::update_access();
 			self::savesession();
@@ -337,6 +404,8 @@ class SimpleAuth {
 			return "Wrong password";
 		else if($code=='PASSWORD_NOMATCH')
 			return "Password does not match the confirm password";
+		else if($code=='INVALID_USERID')
+			return "Invalid user id";
 		else if($code=='CONFIRMATION_NOTSET')
 			return "Confirmation not set";
 		else if($code=='NOT_CONFIRMED')

@@ -147,7 +147,7 @@ class SimpleAuth {
 			$confirmation = base64_encode($username.':'.$token);
 		}
 		else {
-			$token = null;
+			$token_sql = '';
 		}
 
 		$sql = "INSERT INTO $table (username,password,confirmation) VALUES ('$username','$password','$token_sql')";

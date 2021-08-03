@@ -9,6 +9,11 @@ $doc = new HealHTML();
 list($head,$body) = $doc->html('simple-auth :: index');
 $body->el('h2')->te('index');
 
+if(isset($_GET['message'])) {
+	$body->el('pre',['style'=>'color:green;'])->te($_GET['message']);
+	$body->el('br');
+}
+
 if(!SimpleAuth::user_id()) {
 	$body->el('h3')->te('Not logged in!');
 	$body->a('login.php','Login');

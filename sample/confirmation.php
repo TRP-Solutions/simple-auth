@@ -24,6 +24,13 @@ $form = $body->form('confirmation.script.php','post');
 $form->label('Confirmation','confirmation');
 $form->input('confirmation')->at(['required']);
 $form->el('br');
+$form->label('Password','password');
+$form->password('password')->at(['required']);
+$form->el('br');
+$form->label('Repeat Password','password_confirm');
+$form->password('password_confirm')->at(['required']);
+$form->el('br');
+
 
 if(isset($_GET['error'])) {
 	$form->el('pre',['style'=>'color:red;'])->te($_GET['error']);

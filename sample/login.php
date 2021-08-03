@@ -22,7 +22,7 @@ $form->te(' default: johndoe');
 $form->el('br');
 $form->label('Password','password');
 $form->password('password')->at(['required']);
-$form->te(' default: passw0rd');
+$form->te(' default: Pa55w0rd');
 $form->el('br');
 $form->label('Autologin','autologin');
 $form->checkbox('autologin');

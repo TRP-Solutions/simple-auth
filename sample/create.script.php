@@ -6,13 +6,18 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 require_once('include.php');
 
 try {
-	$result = SimpleAuth::create_user($_POST['username'],$_POST['password'],false,!empty($_POST['confirmation']));
 	if(!empty($_POST['confirmation'])) {
+		$cr_result = SimpleAuth::create_user($_POST['username']);
+		$ha_result = SimpleAuth::confirm_hash($cr_result->user_id);
 		// Don't use GET variables in production code.
-		header('location:confirmation.php?confirmation='.urlencode($result->confirmation));
+		header('location:confirmation.php?confirmation='.urlencode($ha_result->confirmation));
 	}
 	else {
-		header('location:.');
+		SimpleAuth::verify_password($_POST['password'],$_POST['password_confirm']);
+		$result = SimpleAuth::create_user($_POST['username']);
+
+		SimpleAuth::change_password($_POST['password'],$result->user_id);
+		header('location:.?message='.urlencode('Ready to login'));
 	}
 }
 catch(Exception $e) {

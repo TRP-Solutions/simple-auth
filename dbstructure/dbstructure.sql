@@ -38,11 +38,19 @@ CREATE TABLE IF NOT EXISTS `auth_user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Privileges
+--
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON `simpleauth`.* TO `simpleauth`@`localhost`;
+
+--
 -- Data
 --
 
+-- $password = password_hash('Pa55w0rd', PASSWORD_DEFAULT);
+
 INSERT INTO `auth_user` (`id`, `username`, `password`) VALUES
-(1, 'johndoe', '$2y$10$AfoOl/0A4uwCPWsXczLvpe3pkVeLnBW.uTU.jwhPOkYmKGtyma5ve');
+(1, 'johndoe', '$2y$10$2gAidYN2XlDzZyE7ZUBK/u3vC/AJyG9fD4peXnWEvIEbEKop6iqGm');
 
 INSERT INTO `auth_access` (`user_id`, `permission`) VALUES
 (1, 'editor');

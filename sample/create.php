@@ -26,7 +26,11 @@ $form->label('Repeat Password','password_confirm');
 $form->password('password_confirm')->at(['required']);
 $form->el('br');
 $form->label('Use confirmation','confirmation');
-$form->checkbox('confirmation');
+
+$js = "document.getElementById('password').disabled = this.checked;";
+$js .= "document.getElementById('password_confirm').disabled = this.checked;";
+
+$form->checkbox('confirmation')->at(['onchange'=>$js]);
 $form->el('br');
 
 if(isset($_GET['error'])) {

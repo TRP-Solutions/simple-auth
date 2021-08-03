@@ -303,6 +303,24 @@ class SimpleAuth {
 		return (object) ['permission'=>$permission];
 	}
 
+	public static function get_user_id($username){
+		if(!$username){
+			throw new Exception('USERNAME_NOTSET');
+		}
+
+		self::open_db();
+		$username = trim(self::$db_conn->real_escape_string($username));
+		$table = self::$db_pfix.'user';
+		$sql = "SELECT `id` FROM `$table` WHERE `username`='$username'";
+		$query = self::$db_conn->query($sql);
+		if($query->num_rows!=1){
+			throw new Exception('USERNAME_UNKNOWN');
+		}
+
+		$rs = $query->fetch_object();
+		return (int) $rs->id;
+	}
+
 	private static function savepassword($user_id,$password){
 		self::open_db();
 		$table = self::$db_pfix.'user';

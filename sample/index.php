@@ -26,6 +26,8 @@ else {
 	$body->el('h3')->te('user_id: '.SimpleAuth::user_id());
 	$body->a('change_password.php','Change password');
 	$body->el('br');
+	$body->a('get_user_id.php','Get other user_id');
+	$body->el('br');
 	$body->a('logout.script.php','Logout');
 }
 

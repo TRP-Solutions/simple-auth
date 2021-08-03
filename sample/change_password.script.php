@@ -6,11 +6,10 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 require_once('include.php');
 
 try {
-	SimpleAuth::confirm($_POST['confirmation']);
+	SimpleAuth::change_password($_POST['password'],null,$_POST['password_confirm'],$_POST['password_current']);
 	header('location:.');
 }
 catch(Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
-	header('location:confirmation.php?error='.urlencode($msg).'&confirmation='.urlencode($_POST['confirmation']));
+	header('location:change_password.php?error='.urlencode($msg));
 }
-

@@ -300,7 +300,7 @@ class SimpleAuth {
 		$sql = "SELECT GROUP_CONCAT(`permission`) as permission FROM `$table` WHERE `user_id`='$user_id'";
 		$permission = explode(',',self::$db_conn->query($sql)->fetch_object()->permission);
 
-		return (object) ['permission'=>$permission];
+		return $permission;
 	}
 
 	public static function get_user_id($username){

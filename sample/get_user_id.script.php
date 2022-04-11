@@ -14,7 +14,7 @@ try {
 	$user_id = SimpleAuth::get_user_id($_POST['username']);
 	header('location:.?message='.urlencode("user_id for ($_POST[username]): ".$user_id));
 }
-catch(Exception $e) {
+catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
 	header('location:get_user_id.php?error='.urlencode($msg).'&username='.$_POST['username']);
 }

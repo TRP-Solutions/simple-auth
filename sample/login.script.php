@@ -9,7 +9,7 @@ try {
 	SimpleAuth::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']));
 	header('location:.');
 }
-catch(Exception $e) {
+catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
 	header('location:login.php?error='.urlencode($msg).'&username='.$_POST['username']);
 }

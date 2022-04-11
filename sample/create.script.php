@@ -20,7 +20,7 @@ try {
 		header('location:.?message='.urlencode('Ready to login'));
 	}
 }
-catch(Exception $e) {
+catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
 	header('location:create.php?error='.urlencode($msg).'&username='.$_POST['username']);
 }

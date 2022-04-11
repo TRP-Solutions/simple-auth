@@ -12,7 +12,7 @@ try {
 
 	header('location:.?message='.urlencode('Ready to login'));
 }
-catch(Exception $e) {
+catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
 	header('location:confirmation.php?error='.urlencode($msg).'&confirmation='.urlencode($_POST['confirmation']));
 }

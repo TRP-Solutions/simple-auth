@@ -67,10 +67,10 @@ class SimpleAuth {
 
 	public static function login($username,$password,$autologin = false){
 		if(!$username){
-			throw new Exception('USERNAME_NOTSET');
+			throw new \Exception('USERNAME_NOTSET');
 		}
 		if(!$password){
-			throw new Exception('PASSWORD_NOTSET');
+			throw new \Exception('PASSWORD_NOTSET');
 		}
 		self::open_db();
 
@@ -79,15 +79,15 @@ class SimpleAuth {
 		$sql = "SELECT `id`,`password` FROM `$table` WHERE `username`='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
-			throw new Exception('USERNAME_UNKNOWN');
+			throw new \Exception('USERNAME_UNKNOWN');
 		}
 
 		$rs = $query->fetch_object();
 		if(empty($rs->password)){
-			throw new Exception('USER_NOT_ACTIVE');
+			throw new \Exception('USER_NOT_ACTIVE');
 		}
 		if(!password_verify($password,$rs->password)){
-			throw new Exception('PASSWORD_WRONG');
+			throw new \Exception('PASSWORD_WRONG');
 		}
 
 		self::$user_id = (int) $rs->id;
@@ -120,7 +120,7 @@ class SimpleAuth {
 
 	public static function create_user($username,$confirmation = false){
 		if(!$username){
-			throw new Exception('USERNAME_NOTSET');
+			throw new \Exception('USERNAME_NOTSET');
 		}
 		self::open_db();
 
@@ -129,7 +129,7 @@ class SimpleAuth {
 		$sql = "SELECT `id` FROM `$table` WHERE `username`='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows==1){
-			throw new Exception('USERNAME_INUSE');
+			throw new \Exception('USERNAME_INUSE');
 		}
 
 		$sql = "INSERT INTO `$table` (`username`) VALUES ('$username')";
@@ -140,7 +140,7 @@ class SimpleAuth {
 
 	public static function confirm_hash($user_id){
 		if(!$user_id){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 		self::open_db();
 
@@ -148,7 +148,7 @@ class SimpleAuth {
 		$sql = "SELECT `username` FROM `$table` WHERE `id`='$user_id'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 		$rs = $query->fetch_object();
 
@@ -164,16 +164,16 @@ class SimpleAuth {
 
 	public static function confirm_verify($confirmation){
 		if(!$confirmation){
-			throw new Exception('CONFIRMATION_NOTSET');
+			throw new \Exception('CONFIRMATION_NOTSET');
 		}
 
 		$str = base64_decode($confirmation);
 		if($str===false){
-			throw new Exception('CONFIRMATION_INVALID');
+			throw new \Exception('CONFIRMATION_INVALID');
 		}
 		$array = explode(':',$str);
 		if(sizeof($array)!==2){
-			throw new Exception('CONFIRMATION_INVALID');
+			throw new \Exception('CONFIRMATION_INVALID');
 		}
 		list($username,$token) = $array;
 
@@ -183,15 +183,15 @@ class SimpleAuth {
 		$sql = "SELECT `id`,`confirmation` FROM `$table` WHERE `username`='$sql_username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
-			throw new Exception('USERNAME_UNKNOWN');
+			throw new \Exception('USERNAME_UNKNOWN');
 		}
 
 		$rs = $query->fetch_object();
 		if(empty($rs->confirmation)){
-			throw new Exception('ALREADY_CONFIRMED');
+			throw new \Exception('ALREADY_CONFIRMED');
 		}
 		if(!password_verify($token,$rs->confirmation)){
-			throw new Exception('CONFIRMATION_WRONG');
+			throw new \Exception('CONFIRMATION_WRONG');
 		}
 
 		$sql = "UPDATE `$table` SET `confirmation`='' WHERE `id`=$rs->id";
@@ -202,11 +202,11 @@ class SimpleAuth {
 
 	public static function change_password($password,$user_id = null,$password_current = false){
 		if(!self::$user_id && $user_id===null){
-			throw new Exception('USER_NOT_LOGGED_IN');
+			throw new \Exception('USER_NOT_LOGGED_IN');
 		}
 		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
 		if(empty($user_id)){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 		if($password_current!==false){
 			self::open_db();
@@ -215,7 +215,7 @@ class SimpleAuth {
 			$query = self::$db_conn->query($sql);
 			$rs = $query->fetch_object();
 			if(!password_verify($password_current,$rs->password)){
-				throw new Exception('PASSWORD_WRONG');
+				throw new \Exception('PASSWORD_WRONG');
 			}
 		}
 
@@ -224,31 +224,31 @@ class SimpleAuth {
 
 	public static function verify_password($password,$password_confirm = false){
 		if(!$password){
-			throw new Exception('PASSWORD_NOTSET');
+			throw new \Exception('PASSWORD_NOTSET');
 		}
 		if($password_confirm!==false && $password!=$password_confirm){
-			throw new Exception('PASSWORD_NOMATCH');
+			throw new \Exception('PASSWORD_NOMATCH');
 		}
 	}
 
 	public static function change_username($username,$user_id = null){
 		if(!$username){
-			throw new Exception('USERNAME_NOTSET');
+			throw new \Exception('USERNAME_NOTSET');
 		}
 		if(!self::$user_id && $user_id===null){
-			throw new Exception('USER_NOT_LOGGED_IN');
+			throw new \Exception('USER_NOT_LOGGED_IN');
 		}
 		self::open_db();
 		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix.'user';
 		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
 		if(empty($user_id)){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 		$sql = "SELECT `id`,`password` FROM `$table` WHERE `username`='$username' AND `id`!='$user_id'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows==1){
-			throw new Exception('USERNAME_INUSE');
+			throw new \Exception('USERNAME_INUSE');
 		}
 
 		$sql = "UPDATE `$table` SET `username`='$username' WHERE `id`='$user_id'";
@@ -257,13 +257,13 @@ class SimpleAuth {
 
 	public static function change_access($access_list,$user_id = null){
 		if(!self::$user_id && $user_id===null){
-			throw new Exception('USER_NOT_LOGGED_IN');
+			throw new \Exception('USER_NOT_LOGGED_IN');
 		}
 		self::open_db();
 		$table = self::$db_pfix.'access';
 		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
 		if(empty($user_id)){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 
 		$sql = "DELETE FROM `$table` WHERE `user_id`='$user_id'";
@@ -292,7 +292,7 @@ class SimpleAuth {
 	public static function get_access($user_id = null){
 		$user_id = ($user_id===null) ? self::$user_id : (int) $user_id;
 		if(empty($user_id)){
-			throw new Exception('INVALID_USERID');
+			throw new \Exception('INVALID_USERID');
 		}
 
 		self::open_db();
@@ -305,7 +305,7 @@ class SimpleAuth {
 
 	public static function get_user_id($username){
 		if(!$username){
-			throw new Exception('USERNAME_NOTSET');
+			throw new \Exception('USERNAME_NOTSET');
 		}
 
 		self::open_db();
@@ -314,7 +314,7 @@ class SimpleAuth {
 		$sql = "SELECT `id` FROM `$table` WHERE `username`='$username'";
 		$query = self::$db_conn->query($sql);
 		if($query->num_rows!=1){
-			throw new Exception('USERNAME_UNKNOWN');
+			throw new \Exception('USERNAME_UNKNOWN');
 		}
 
 		$rs = $query->fetch_object();
@@ -419,7 +419,7 @@ class SimpleAuth {
 		if(!self::$db_conn){
 			self::$db_conn = new mysqli(self::$db_host,self::$db_user,self::$db_pass,self::$db_base);
 			if(self::$db_conn->connect_error){
-				throw new Exception('CONNECTION_ERROR');
+				throw new \Exception('CONNECTION_ERROR');
 			}
 			self::$db_conn->set_charset(self::$charset);
 		}

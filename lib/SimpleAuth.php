@@ -346,10 +346,11 @@ class SimpleAuth {
 		}
 		self::$db_conn->query($sql);
 
-		$expire = (int) self::$autologin_expire;
 		$user_id = self::$user_id;
+		$token_sql = self::$db_conn->real_escape_string($token);
+		$expire = (int) self::$autologin_expire;
 		$sql = "INSERT INTO `$table` (user_id,token,expires)
-			VALUES ($user_id,'$token',DATE_ADD(NOW(),INTERVAL $expire SECOND))";
+			VALUES ($user_id,'$token_sql',DATE_ADD(NOW(),INTERVAL $expire SECOND))";
 		self::$db_conn->query($sql);
 
 		$expire = time()+self::$autologin_expire;

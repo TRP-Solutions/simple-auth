@@ -18,8 +18,8 @@ class SimpleAuth {
 	private static $lifetime = null;
 	private static $cookie_pfix = 'auth_';
 	private static $cookie_path = '';
+	private static $cookie_secure = true;
 	private static $autologin_expire = 2592000; // 30 days in seconds
-	private static $autologin_secure = true;
 	private static $token_bytes = 32;
 	private static $charset = 'utf8mb4';
 	private static $onlogin = null;
@@ -34,8 +34,8 @@ class SimpleAuth {
 		if(isset($options['lifetime'])) self::$lifetime = $options['lifetime'];
 		if(isset($options['cookie_pfix'])) self::$cookie_pfix = $options['cookie_pfix'];
 		if(isset($options['cookie_path'])) self::$cookie_path = $options['cookie_path'];
+		if(isset($options['cookie_secure'])) self::$cookie_secure = $options['cookie_secure'];
 		if(isset($options['autologin_expire'])) self::$autologin_expire = $options['autologin_expire'];
-		if(isset($options['autologin_secure'])) self::$autologin_secure = $options['autologin_secure'];
 		if(isset($options['token_bytes'])) self::$token_bytes = $options['token_bytes'];
 		if(isset($options['charset'])) self::$charset = $options['charset'];
 		if(isset($options['onlogin'])) self::$onlogin = $options['onlogin'];
@@ -44,8 +44,11 @@ class SimpleAuth {
 			ini_set('session.gc_maxlifetime', self::$lifetime);
 		}
 
-		session_set_cookie_params(self::$lifetime,self::$cookie_path);
+		session_set_cookie_params(self::$lifetime, self::$cookie_path, '', self::$cookie_secure);
 		session_start();
+		if(self::$lifetime) {
+			setcookie(session_name(), session_id(), time()+self::$lifetime, self::$cookie_path, '', self::$cookie_secure);
+		}
 		self::loadsession();
 	}
 
@@ -355,14 +358,14 @@ class SimpleAuth {
 
 		$expire = time()+self::$autologin_expire;
 		if(is_float($expire)) $expire = 0; // if Unix time is overflowing, default to session length;
-		setcookie($name, $token, $expire, self::$cookie_path, '', self::$autologin_secure); // require HTTPS
+		setcookie($name, $token, $expire, self::$cookie_path, '', self::$cookie_secure);
 	}
 
 	private function update_autologin_cookie(){
 		$name = self::$cookie_pfix.'autologin';
 		if(!isset($_COOKIE[$name])) return;
 		$expire = time()+self::$autologin_expire;
-		setcookie($name, $_COOKIE[$name], $expire, self::$cookie_path, '', self::$autologin_secure);
+		setcookie($name, $_COOKIE[$name], $expire, self::$cookie_path, '', self::$cookie_secure);
 	}
 
 	private static function delete_autologin_cookie(){

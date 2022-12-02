@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS `auth_token` (
 CREATE TABLE IF NOT EXISTS `auth_user` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`username` varchar(50) NOT NULL,
-	`password` varchar(255) NOT NULL,
-	`confirmation` varchar(255) NOT NULL,
+	`password` varchar(255) NOT NULL DEFAULT '',
+	`confirmation` varchar(255) NOT NULL DEFAULT '',
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

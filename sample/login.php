@@ -10,22 +10,20 @@ if(SimpleAuth::user_id()) {
 	exit;
 }
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: login');
-$body->el('h2')->te('login');
-$body->a('.','Back');
+$body = design('login');
+$body->el('a',['href'=>'.'])->te('Back');
 
-$form = $body->form('login.script.php','post');
-$form->label('Username','username');
-$form->input('username',empty($_GET['username']) ? '' : $_GET['username'])->at(['required']);
+$form = $body->el('form',['method'=>'post','action'=>'login.script.php']);
+$form->el('label')->te('Username');
+$form->el('input',['name'=>'username','required','value'=>empty($_GET['username']) ? '' : $_GET['username']]);
 $form->te(' default: johndoe');
 $form->el('br');
-$form->label('Password','password');
-$form->password('password')->at(['required']);
+$form->el('label')->te('Password');
+$form->el('input',['name'=>'password','required','type'=>'password']);
 $form->te(' default: Pa55w0rd');
 $form->el('br');
-$form->label('Autologin','autologin');
-$form->checkbox('autologin');
+$form->el('label')->te('Autologin');
+$form->el('input',['name'=>'autologin','type'=>'checkbox']);
 $form->el('br');
 
 if(isset($_GET['error'])) {
@@ -34,5 +32,3 @@ if(isset($_GET['error'])) {
 }
 
 $form->el('button',['type'=>'submit'])->te('Login');
-
-echo $doc;

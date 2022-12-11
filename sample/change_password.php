@@ -10,20 +10,18 @@ if(!SimpleAuth::user_id()) {
 	exit;
 }
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: change password');
-$body->el('h2')->te('change password');
-$body->a('.','Back');
+$body = design('change password');
+$body->el('a',['href'=>'.'])->te('Back');
 
-$form = $body->form('change_password.script.php','post');
-$form->label('Current password','password_current');
-$form->password('password_current')->at(['required']);
+$form = $body->el('form',['method'=>'post','action'=>'change_password.script.php']);
+$form->el('label')->te('Current password');
+$form->el('input',['name'=>'password_current','required','type'=>'password']);
 $form->el('br');
-$form->label('Password','password');
-$form->password('password')->at(['required']);
+$form->el('label')->te('Password');
+$form->el('input',['name'=>'password','required','type'=>'password']);
 $form->el('br');
-$form->label('Repeat Password','password_confirm');
-$form->password('password_confirm')->at(['required']);
+$form->el('label')->te('Repeat Password');
+$form->el('input',['name'=>'password_confirm','required','type'=>'password']);
 $form->el('br');
 
 if(isset($_GET['error'])) {
@@ -32,5 +30,3 @@ if(isset($_GET['error'])) {
 }
 
 $form->el('button',['type'=>'submit'])->te('Change');
-
-echo $doc;

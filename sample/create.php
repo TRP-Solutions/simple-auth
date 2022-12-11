@@ -10,27 +10,25 @@ if(SimpleAuth::user_id()) {
 	exit;
 }
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: create user');
-$body->el('h2')->te('create user');
-$body->a('.','Back');
+$body = design('create user');
+$body->el('a',['href'=>'.'])->te('Back');
 
-$form = $body->form('create.script.php','post');
-$form->label('Username','username');
-$form->input('username',empty($_GET['username']) ? '' : $_GET['username'])->at(['required']);
+$form = $body->el('form',['method'=>'post','action'=>'create.script.php']);
+$form->el('label')->te('Username');
+$form->el('input',['name'=>'username','required']);
 $form->el('br');
-$form->label('Password','password');
-$form->password('password')->at(['required']);
+$form->el('label')->te('Password');
+$form->el('input',['name'=>'password','id'=>'password','required','type'=>'password']);
 $form->el('br');
-$form->label('Repeat Password','password_confirm');
-$form->password('password_confirm')->at(['required']);
+$form->el('label')->te('Repeat Password');
+$form->el('input',['name'=>'password_confirm','id'=>'password_confirm','required','type'=>'password']);
 $form->el('br');
-$form->label('Use confirmation','confirmation');
+$form->el('label')->te('Use confirmation');
 
 $js = "document.getElementById('password').disabled = this.checked;";
 $js .= "document.getElementById('password_confirm').disabled = this.checked;";
 
-$form->checkbox('confirmation')->at(['onchange'=>$js]);
+$form->el('input',['name'=>'confirmation','type'=>'checkbox','onchange'=>$js]);
 $form->el('br');
 
 if(isset($_GET['error'])) {
@@ -39,5 +37,3 @@ if(isset($_GET['error'])) {
 }
 
 $form->el('button',['type'=>'submit'])->te('Login');
-
-echo $doc;

@@ -10,25 +10,23 @@ if(SimpleAuth::user_id()) {
 	exit;
 }
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: confirmation');
-$body->el('h2')->te('confirmation');
-$body->a('.','Back');
+$body = design('confirmation');
+$body->el('a',['href'=>'.'])->te('Back');
 
-$body->p('Copy-paste confirmation string to confirm user. Deliver via alternative method (E-mail, SMS) in production code:');
+$body->el('p')->te('Copy-paste confirmation string to confirm user. Deliver via alternative method (E-mail, SMS) in production code:');
 
 $body->el('pre',['style'=>'color:red;'])->te(!empty($_GET['confirmation']) ? $_GET['confirmation'] : '');
 $body->el('br');
 
-$form = $body->form('confirmation.script.php','post');
-$form->label('Confirmation','confirmation');
-$form->input('confirmation')->at(['required']);
+$form = $body->el('form',['method'=>'post','action'=>'confirmation.script.php']);
+$form->el('label')->te('Confirmation');
+$form->el('input',['name'=>'confirmation','required']);
 $form->el('br');
-$form->label('Password','password');
-$form->password('password')->at(['required']);
+$form->el('label')->te('Password');
+$form->el('input',['name'=>'password','required','type'=>'password']);
 $form->el('br');
-$form->label('Repeat Password','password_confirm');
-$form->password('password_confirm')->at(['required']);
+$form->el('label')->te('Repeat Password');
+$form->el('input',['name'=>'password_confirm','required','type'=>'password']);
 $form->el('br');
 
 
@@ -38,5 +36,3 @@ if(isset($_GET['error'])) {
 }
 
 $form->el('button',['type'=>'submit'])->te('Confirm');
-
-echo $doc;

@@ -10,14 +10,12 @@ if(!SimpleAuth::user_id()) {
 	exit;
 }
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: login');
-$body->el('h2')->te('login');
-$body->a('.','Back');
+$body = design('get user_id');
+$body->el('a',['href'=>'.'])->te('Back');
 
-$form = $body->form('get_user_id.script.php','post');
-$form->label('Username','username');
-$form->input('username',empty($_GET['username']) ? '' : $_GET['username'])->at(['required']);
+$form = $body->el('form',['method'=>'post','action'=>'get_user_id.script.php']);
+$form->el('label')->te('Username');
+$form->el('input',['name'=>'username','required','value'=>empty($_GET['username']) ? '' : $_GET['username']]);
 $form->el('br');
 
 if(isset($_GET['error'])) {
@@ -26,5 +24,3 @@ if(isset($_GET['error'])) {
 }
 
 $form->el('button',['type'=>'submit'])->te('Get');
-
-echo $doc;

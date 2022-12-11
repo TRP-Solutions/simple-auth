@@ -8,7 +8,7 @@ require_once('include.php');
 try {
 	SimpleAuth::verify_password($_POST['password'],$_POST['password_confirm']);
 	SimpleAuth::change_password($_POST['password'],null,$_POST['password_current']);
-	header('location:.?message='.urlencode('Changed'));
+	header('location:.?message='.urlencode('Password changed'));
 }
 catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());

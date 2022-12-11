@@ -5,9 +5,7 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
 require_once('include.php');
 
-$doc = new HealHTML();
-list($head,$body) = $doc->html('simple-auth :: index');
-$body->el('h2')->te('index');
+$body = design('index');
 
 if(isset($_GET['message'])) {
 	$body->el('pre',['style'=>'color:green;'])->te($_GET['message']);
@@ -16,19 +14,19 @@ if(isset($_GET['message'])) {
 
 if(!SimpleAuth::user_id()) {
 	$body->el('h3')->te('Not logged in!');
-	$body->a('login.php','Login');
+	$body->el('a',['href'=>'login.php'])->te('Login');
 	$body->el('br');
-	$body->a('create.php','Create user');
+	$body->el('a',['href'=>'create.php'])->te('Create user');
 	$body->el('br');
-	$body->a('confirmation.php','Confirm user');
+	$body->el('a',['href'=>'confirmation.php'])->te('Confirm user');
 }
 else {
 	$body->el('h3')->te('user_id: '.SimpleAuth::user_id());
-	$body->a('change_password.php','Change password');
+	$body->el('a',['href'=>'change_password.php'])->te('Change password');
 	$body->el('br');
-	$body->a('get_user_id.php','Get other user_id');
+	$body->el('a',['href'=>'get_user_id.php'])->te('Get other user_id');
 	$body->el('br');
-	$body->a('logout.script.php','Logout');
+	$body->el('a',['href'=>'logout.script.php'])->te('Logout');
 }
 
 $ul = $body->el('ul');
@@ -48,5 +46,3 @@ if(SimpleAuth::access('admin')) {
 if(SimpleAuth::access('other')) {
 	$ul->el('li')->te('other access');
 }
-
-echo $doc;

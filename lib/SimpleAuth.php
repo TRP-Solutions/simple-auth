@@ -15,7 +15,7 @@ class SimpleAuth {
 	private static $db_base = '';
 	private static $db_pfix = 'auth_';
 	private static $session_var = 'auth';
-	private static $lifetime = null;
+	private static $lifetime = 0;
 	private static $cookie_pfix = 'auth_';
 	private static $cookie_path = '';
 	private static $cookie_secure = true;

@@ -17,7 +17,8 @@ USE `simpleauth`;
 CREATE TABLE IF NOT EXISTS `auth_access` (
 	`user_id` int(10) unsigned NOT NULL,
 	`permission` varchar(30) NOT NULL,
-	PRIMARY KEY (`user_id`,`permission`)
+	PRIMARY KEY (`user_id`,`permission`),
+	FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `auth_token` (
@@ -25,7 +26,8 @@ CREATE TABLE IF NOT EXISTS `auth_token` (
 	`token` varchar(44) NOT NULL,
 	`expires` DATETIME NOT NULL,
 	PRIMARY KEY (`token`),
-	KEY `user_id` (`user_id`)
+	KEY `user_id` (`user_id`),
+	FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `auth_user` (

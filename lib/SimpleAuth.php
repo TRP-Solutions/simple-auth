@@ -418,6 +418,31 @@ class SimpleAuth {
 		}
 	}
 
+	public static function www_authenticate($realm = 'SimpleAuth Login'){
+		if(self::$user_id) {
+			return;
+		}
+		if(empty($_SERVER['PHP_AUTH_USER']) || empty($_SERVER['PHP_AUTH_PW'])) {
+			self::www_dialog($realm);
+		}
+		else {
+			try {
+				$software = $_SERVER['HTTP_USER_AGENT'];
+				self::login($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW']);
+			}
+			catch(\Exception $e){
+				self::www_dialog($realm,SimpleAuth::error_string($e->getMessage()));
+			}
+		}
+	}
+
+	private static function www_dialog($realm, $message = 'Unauthorized') {
+		header('WWW-Authenticate: Basic realm="'.$realm.'", charset="UTF-8"');
+		header('HTTP/1.1 401 '.$message);
+		echo $message;
+		exit;
+	}
+
 	private static function open_db(){
 		if(!self::$db_conn){
 			self::$db_conn = new mysqli(self::$db_host,self::$db_user,self::$db_pass,self::$db_base);

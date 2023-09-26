@@ -427,7 +427,6 @@ class SimpleAuth {
 		}
 		else {
 			try {
-				$software = $_SERVER['HTTP_USER_AGENT'];
 				self::login($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW']);
 			}
 			catch(\Exception $e){

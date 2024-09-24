@@ -3,6 +3,8 @@
 SimpleAuth is licensed under the Apache License 2.0 license
 https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
+declare(strict_types=1);
+
 class SimpleAuth {
 	private static $user_id = 0;
 	private static $access = [];

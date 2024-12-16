@@ -325,6 +325,25 @@ class SimpleAuth {
 		return (int) $rs->id;
 	}
 
+	public static function disable($user_id){
+		if(empty($user_id)){
+			throw new \Exception('INVALID_USERID');
+		}
+
+		self::open_db();
+		$table = self::$db_pfix.'access';
+		$sql = "DELETE FROM `$table` WHERE `user_id`='$user_id'";
+		self::$db_conn->query($sql);
+
+		$table = self::$db_pfix.'token';
+		$sql = "DELETE FROM `$table` WHERE `user_id`='$user_id'";
+		self::$db_conn->query($sql);
+
+		$table = self::$db_pfix.'user';
+		$sql = "UPDATE `$table` SET `password`='',`confirmation`='' WHERE `id`='$user_id'";
+		self::$db_conn->query($sql);
+	}
+
 	private static function savepassword($user_id,$password){
 		self::open_db();
 		$table = self::$db_pfix.'user';

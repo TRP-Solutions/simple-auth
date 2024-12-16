@@ -27,6 +27,8 @@ else {
 	$body->el('br');
 	$body->el('a',['href'=>'get_user_id.php'])->te('Get other user_id');
 	$body->el('br');
+	$body->el('a',['href'=>'disable.script.php'])->te('Disable and Logout');
+	$body->el('br');
 	$body->el('a',['href'=>'logout.script.php'])->te('Logout');
 }
 

@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 function design($title) {
 	global $doc;
-	$doc = new HealDocument();
+	$doc = new \TRP\HealDocument\HealDocument();
 	
 	$html = $doc->el('html');
 	$html->at(['lang'=>'en']);

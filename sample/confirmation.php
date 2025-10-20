@@ -29,6 +29,9 @@ $form->el('br');
 $form->el('label')->te('Repeat Password');
 $form->el('input',['name'=>'password_confirm','required','type'=>'password']);
 $form->el('br');
+if(!empty($_GET['qr'])){
+    $form->el('input',['name'=>'qr', 'type'=>'text', 'hidden', 'value'=>$_GET['qr']]);
+}
 
 
 if(isset($_GET['error'])) {

@@ -5,8 +5,15 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 */
 declare(strict_types=1);
 
+use RobThree\Auth\Algorithm;
+use RobThree\Auth\Providers\Qr\EndroidQrCodeProvider;
+use RobThree\Auth\TwoFactorAuth;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+
 class SimpleAuth {
-	private static $user_id = 0;
+    private static $user_id = 0;
 	private static $access = [];
 	private static $db_conn = null;
 
@@ -25,6 +32,8 @@ class SimpleAuth {
 	private static $token_bytes = 32;
 	private static $charset = 'utf8mb4';
 	private static $onlogin = null;
+
+    private static $tfa;
 
     /**
      *
@@ -92,41 +101,80 @@ class SimpleAuth {
      *
      * @param string $username The username provided by the user.
      * @param string $password The password provided by the user.
+     * @param string $totp [OPTIONAL] 2fa code send by user.
      * @param bool $autologin [OPTIONAL] Whether to enable the remember me cookie feature. (default: false)
+     * @return bool if this is false the user has 2fa enabled
+     * @throws \Random\RandomException
+     */
+    public static function login($username, $password, $autologin = false) {
+        if (!$username) { throw new \Exception('USERNAME_NOTSET'); }
+        if (!$password) { throw new \Exception('PASSWORD_NOTSET'); }
+
+        self::open_db();
+
+        $username = trim(self::$db_conn->real_escape_string($username));
+        $table = self::$db_pfix . 'user';
+
+        $sql = "SELECT `id`,`password`,`tfa` FROM `$table` WHERE `username`='$username'";
+        $query = self::$db_conn->query($sql);
+        if ($query->num_rows !== 1) {
+            throw new \Exception('USERNAME_UNKNOWN');
+        }
+
+        $rs = $query->fetch_object();
+
+        if (empty($rs->password)) {
+            throw new \Exception('USER_NOT_ACTIVE');
+        }
+        if (!password_verify($password, $rs->password)) {
+            throw new \Exception('PASSWORD_WRONG');
+        }
+        if (!empty($rs->tfa)) {
+            $user_id  = (int)$rs->id;
+            $username = self::$db_conn->real_escape_string($username);
+
+            $sql = "INSERT INTO auth_pending (user_id, username, expires)
+            VALUES ($user_id, '$username', DATE_ADD(NOW(), INTERVAL 5 MINUTE))
+            ON DUPLICATE KEY UPDATE
+                username = VALUES(username),
+                expires = VALUES(expires)";
+
+            self::$db_conn->query($sql);
+            return false;
+        }
+
+        self::$user_id = (int)$rs->id;
+        self::update_access();
+        self::savesession();
+        if ($autologin) self::write_autologin_cookie();
+        self::login_successful();
+        return true;
+    }
+
+    /**
+     *
+     * Authenticates a user often used for 2fa authentication,
+     *
+     * @param string $username The username provided by the user.
      * @return void
      * @throws \Random\RandomException
      */
-	public static function login($username,$password,$autologin = false){
-		if(!$username){
-			throw new \Exception('USERNAME_NOTSET');
-		}
-		if(!$password){
-			throw new \Exception('PASSWORD_NOTSET');
-		}
-		self::open_db();
+    public static function loginWithUsername($username){
+        $table = self::$db_pfix . 'pending';
+        $sql = "SELECT `user_id`, `expires` FROM `$table` WHERE `username`='$username'";
+        $query = self::$db_conn->query($sql);
+        if ($query->num_rows !== 1) {
+            return;
+        }
+        $rs = $query->fetch_object();
 
-		$username = trim(self::$db_conn->real_escape_string($username));
-		$table = self::$db_pfix.'user';
-		$sql = "SELECT `id`,`password` FROM `$table` WHERE `username`='$username'";
-		$query = self::$db_conn->query($sql);
-		if($query->num_rows!=1){
-			throw new \Exception('USERNAME_UNKNOWN');
-		}
-
-		$rs = $query->fetch_object();
-		if(empty($rs->password)){
-			throw new \Exception('USER_NOT_ACTIVE');
-		}
-		if(!password_verify($password,$rs->password)){
-			throw new \Exception('PASSWORD_WRONG');
-		}
-
-		self::$user_id = (int) $rs->id;
-		self::update_access();
-		self::savesession();
-		if($autologin) self::write_autologin_cookie();
-		self::login_successful();
-	}
+        if($rs->expires < time()) return;
+        self::$user_id = $rs->user_id;
+        self::update_access();
+        self::savesession();
+        self::write_autologin_cookie();
+        self::login_successful();
+    }
 
     /**
      *
@@ -178,10 +226,11 @@ class SimpleAuth {
      * Creates a username if the inputted username is not already in use.
      *
      * @param string $username New username.
-     * @return object The user string. (property: user_id)
+     * @param boolean $includeTfa Should the user have 2fa enabled.
+     * @return object The user string. (property: user_id, qr)
      * @throws Exception
      */
-	public static function create_user($username){
+	public static function create_user($username, $includeTfa){
 		if(!$username){
 			throw new \Exception('USERNAME_NOTSET');
 		}
@@ -197,8 +246,18 @@ class SimpleAuth {
 
 		$sql = "INSERT INTO `$table` (`username`) VALUES ('$username')";
 		self::$db_conn->query($sql);
+        $userId = self::$db_conn->insert_id;
 
-		return (object) ['user_id'=>self::$db_conn->insert_id];
+        $qr = null;
+        if($includeTfa){
+            $tfaInfo = self::createTfaCode($username);
+            $qr = $tfaInfo->qr;
+        }
+
+        return (object) [
+            'user_id'=>$userId,
+            'qr' => $qr
+        ];
 	}
 
     /**
@@ -285,7 +344,7 @@ class SimpleAuth {
      *
      * @param string $password New unhashed password.
      * @param int $user_id [OPTIONAL] User's id. (default: current user)
-     * @param string $password_current The current password hash.
+     * @param string $password_current The current unhashed password.
      * @return void
      * @throws Exception
      */
@@ -709,9 +768,26 @@ class SimpleAuth {
      *
      * @return int User's id.
      */
-	public static function user_id(){
-		return self::$user_id;
-	}
+    public static function user_id(){
+        return self::$user_id;
+    }
+
+    /**
+     *
+     * Gets the current user's username.
+     *
+     * @return string User's username.
+     */
+    public static function username(){
+        $user_id = self::$user_id;
+
+        self::open_db();
+        $table = self::$db_pfix.'user';
+        $sql = "SELECT `username` FROM `$table` WHERE id='$user_id'";
+        $query = self::$db_conn->query($sql);
+        $rs = $query->fetch_object();
+        return $rs->username;
+    }
 
     /**
      *
@@ -747,9 +823,156 @@ class SimpleAuth {
 			return "User is already confirmed";
 		else if($code=='CONFIRMATION_WRONG')
 			return "Wrong confirmation";
-		else if($code=='CONNECTION_ERROR')
-			return "Connection Error";
+        else if($code=='CONNECTION_ERROR')
+            return "Connection Error";
+        else if($code=='TFA_INVALID')
+            return "Two factor code is invalid";
 		else
 			return $code;
 	}
+
+    /**
+     *
+     * Get 2fa instance.
+     *
+     * @return TwoFactorAuth
+     * @throws \RobThree\Auth\TwoFactorAuthException
+     */
+    private static function getTfa()
+    {
+        if (!self::$tfa) {
+            $qr  = new EndroidQrCodeProvider();
+            $tfa = new TwoFactorAuth($qr, 'SimpleAuth', 6, 30, Algorithm::Sha1);
+            self::$tfa = $tfa;
+        }
+        return self::$tfa;
+    }
+
+
+    /**
+     *
+     * Create 2fa code for user.
+     *
+     * @param string $username User's username.
+     * @return object (property: qr, hasSecret)
+     * @throws \RobThree\Auth\TwoFactorAuthException
+     */
+    public static function createTfaCode(string $username)
+    {
+        $tfa = self::getTfa();
+
+        $secret = self::loadUserTfaSecret($username);
+
+        if (!$secret) {
+            $secret = $tfa->createSecret(160);
+            self::saveUserTfaSecret($username, $secret);
+        }
+
+        // Display as SimpleAuth:Username
+        $label = "SimpleAuth:" . $username;
+        $qrImgDataUri = $tfa->getQRCodeImageAsDataUri($label, $secret);
+
+        return (object) [
+            'qr'        => $qrImgDataUri,
+            'hasSecret' => true
+        ];
+    }
+
+    /**
+     *
+     * Deletes 2fa code for user.
+     *
+     * @param string $username User's username.
+     */
+    public static function deleteTfaCode(string $username)
+    {
+        self::open_db();
+        $table = self::$db_pfix.'user';
+        $sql = "UPDATE `$table` SET tfa = NULL WHERE username='$username'";
+        self::$db_conn->query($sql);
+    }
+
+    /**
+     *
+     * Validate a user inputted 2fa code.
+     *
+     * @param string $username User's username.
+     * @param string|null $code User provided code.
+     * @return bool
+     * @throws \RobThree\Auth\TwoFactorAuthException
+     */
+    public static function validateTfaCode(string $username, string $code = null)
+    {
+        $tfa = self::getTfa();
+        if ($code === null) {
+            return false;
+        }
+
+        $secret = self::loadUserTfaSecret($username);
+
+        if (!$secret) {
+            return false;
+        }
+
+        return $tfa->verifyCode($secret, $code, 2);
+    }
+
+    /**
+     *
+     * Get user's 2fa secret from database.
+     *
+     * @param string $username User's username.
+     * @return string|null
+     * @throws Exception
+     */
+    private static function loadUserTfaSecret(string $username)
+    {
+        self::open_db();
+        $table = self::$db_pfix.'user';
+        $sql = "SELECT `tfa` FROM `$table` WHERE username='$username'";
+        $query = self::$db_conn->query($sql);
+        $rs = $query->fetch_object();
+        if($rs->tfa === "") return null;
+        return $rs->tfa;
+    }
+
+    /**
+     *
+     * Checks if the current user has 2fa enabled
+     *
+     * @return bool if the user has 2fa enabled.
+     */
+    public static function hasTfa()
+    {
+        self::open_db();
+
+        $table = self::$db_pfix . 'user';
+
+        $user_id = self::$user_id;
+        $sql = "SELECT `username` FROM `$table` WHERE `id`='$user_id'";
+        $query = self::$db_conn->query($sql);
+        if ($query->num_rows !== 1) {
+            throw new \Exception('USERNAME_UNKNOWN');
+        }
+        $rs = $query->fetch_object();
+        return self::loadUserTfaSecret($rs->username) != null;
+    }
+
+    /**
+     *
+     * Saves a 2fa secret to the database.
+     *
+     * @param string $username User's username
+     * @param string $secret User's secret
+     * @return void
+     * @throws Exception
+     */
+    private static function saveUserTfaSecret(string $username, string $secret)
+    {
+        $table = self::$db_pfix.'user';
+
+        self::open_db();
+        $sql = "UPDATE `$table` SET `tfa` = '$secret' WHERE `username` = '$username'";
+        self::$db_conn->query($sql);
+    }
 }

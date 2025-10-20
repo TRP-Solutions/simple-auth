@@ -11,10 +11,18 @@ try {
 	$result = SimpleAuth::confirm_verify($_POST['confirmation']);
 	SimpleAuth::change_password($_POST['password'],$result->user_id);
 
-	header('location:.?message='.urlencode('Ready to login'));
+    if(!empty($_POST['qr'])){
+        header('location:qr.php?qr='.urlencode($_POST['qr']));
+        return;
+    }
+    header('location:.');
 }
 catch(\Exception $e) {
 	$msg = SimpleAuth::error_string($e->getMessage());
-	header('location:confirmation.php?error='.urlencode($msg).'&confirmation='.urlencode($_POST['confirmation']));
+    if(!empty($_POST['qr'])){
+        header('location:confirmation.php?error='.urlencode($msg).'&qr='.urlencode($_POST['qr']).'&confirmation='.urlencode($_POST['confirmation']));
+        return;
+    }
+    header('location:confirmation.php?error='.urlencode($msg).'&confirmation='.urlencode($_POST['confirmation']));
 }
 

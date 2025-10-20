@@ -35,8 +35,17 @@ CREATE TABLE IF NOT EXISTS `auth_user` (
 	`username` varchar(50) NOT NULL,
 	`password` varchar(255) NOT NULL DEFAULT '',
 	`confirmation` varchar(255) NOT NULL DEFAULT '',
+	`tfa` varchar(255) NOT NULL DEFAULT '',
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `auth_pending` (
+    `user_id` int(10) unsigned NOT NULL,
+    `username` varchar(50) NOT NULL,
+    `expires` DATETIME NOT NULL,
+    PRIMARY KEY (`user_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --

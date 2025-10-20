@@ -7,7 +7,10 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	SimpleAuth::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']));
+	if(!SimpleAuth::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']))){
+        header('location:tfa.php?username='.$_POST['username']);
+        return;
+    }
 	header('location:.');
 }
 catch(\Exception $e) {

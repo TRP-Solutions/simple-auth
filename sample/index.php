@@ -32,7 +32,7 @@ else {
 	$body->el('a',['href'=>'logout.script.php'])->te('Logout');
     $body->el('br');
 
-    if(SimpleAuth::hasTfa()) {
+    if(SimpleAuth::has_tfa()) {
         $body->el('a',['href'=>'disable_tfa.script.php'])->te('Disable two factor authentication');
     }else {
         $body->el('a',['href'=>'enable_tfa.script.php'])->te('Enable two factor authentication');

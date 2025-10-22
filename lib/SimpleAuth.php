@@ -154,12 +154,13 @@ class SimpleAuth {
     /**
      *
      * Authenticates a user often used for 2fa authentication,
+     * needs an active and valid 2fa pending request
      *
      * @param string $username The username provided by the user.
      * @return void
      * @throws \Random\RandomException
      */
-    public static function loginWithUsername($username){
+    public static function login_with_username($username){
         $table = self::$db_pfix . 'pending';
         $sql = "SELECT `user_id`, `expires` FROM `$table` WHERE `username`='$username'";
         $query = self::$db_conn->query($sql);
@@ -167,6 +168,10 @@ class SimpleAuth {
             return;
         }
         $rs = $query->fetch_object();
+
+        $table = self::$db_pfix.'pending';
+        $sql = "DELETE FROM `$table` WHERE `username`='$username'";
+        self::$db_conn->query($sql);
 
         if($rs->expires < time()) return;
         self::$user_id = $rs->user_id;
@@ -250,7 +255,7 @@ class SimpleAuth {
 
         $qr = null;
         if($includeTfa){
-            $tfaInfo = self::createTfaCode($username);
+            $tfaInfo = self::create_tfa_code($username);
             $qr = $tfaInfo->qr;
         }
 
@@ -857,15 +862,15 @@ class SimpleAuth {
      * @return object (property: qr, hasSecret)
      * @throws \RobThree\Auth\TwoFactorAuthException
      */
-    public static function createTfaCode(string $username)
+    public static function create_tfa_code(string $username)
     {
         $tfa = self::getTfa();
 
-        $secret = self::loadUserTfaSecret($username);
+        $secret = self::load_user_tfa_secret($username);
 
         if (!$secret) {
             $secret = $tfa->createSecret(160);
-            self::saveUserTfaSecret($username, $secret);
+            self::save_user_tfa_secret($username, $secret);
         }
 
         // Display as SimpleAuth:Username
@@ -884,7 +889,7 @@ class SimpleAuth {
      *
      * @param string $username User's username.
      */
-    public static function deleteTfaCode(string $username)
+    public static function delete_tfa_code(string $username)
     {
         self::open_db();
         $table = self::$db_pfix.'user';
@@ -901,14 +906,14 @@ class SimpleAuth {
      * @return bool
      * @throws \RobThree\Auth\TwoFactorAuthException
      */
-    public static function validateTfaCode(string $username, string $code = null)
+    public static function validate_tfa_code(string $username, string $code = null)
     {
         $tfa = self::getTfa();
         if ($code === null) {
             return false;
         }
 
-        $secret = self::loadUserTfaSecret($username);
+        $secret = self::load_user_tfa_secret($username);
 
         if (!$secret) {
             return false;
@@ -925,7 +930,7 @@ class SimpleAuth {
      * @return string|null
      * @throws Exception
      */
-    private static function loadUserTfaSecret(string $username)
+    private static function load_user_tfa_secret(string $username)
     {
         self::open_db();
         $table = self::$db_pfix.'user';
@@ -942,7 +947,7 @@ class SimpleAuth {
      *
      * @return bool if the user has 2fa enabled.
      */
-    public static function hasTfa()
+    public static function has_tfa()
     {
         self::open_db();
 
@@ -955,7 +960,7 @@ class SimpleAuth {
             throw new \Exception('USERNAME_UNKNOWN');
         }
         $rs = $query->fetch_object();
-        return self::loadUserTfaSecret($rs->username) != null;
+        return self::load_user_tfa_secret($rs->username) != null;
     }
 
     /**
@@ -967,7 +972,7 @@ class SimpleAuth {
      * @return void
      * @throws Exception
      */
-    private static function saveUserTfaSecret(string $username, string $secret)
+    private static function save_user_tfa_secret(string $username, string $secret)
     {
         $table = self::$db_pfix.'user';
 

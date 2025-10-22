@@ -4,11 +4,11 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-    if(!SimpleAuth::validateTfaCode($_POST['username'],$_POST['totp'])){
+    if(!SimpleAuth::validate_tfa_code($_POST['username'],$_POST['totp'])){
         header('location:tfa.php?error='.urlencode('2fa code is invalid').'&username='.$_POST['username']);
         return;
     }
-    SimpleAuth::loginWithUsername($_POST['username']);
+    SimpleAuth::login_with_username($_POST['username']);
     header('location:.');
 }
 catch(\Exception $e) {

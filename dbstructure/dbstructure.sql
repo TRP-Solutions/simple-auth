@@ -14,6 +14,16 @@ USE `simpleauth`;
 -- Tables
 --
 
+CREATE TABLE IF NOT EXISTS `auth_user` (
+                                           `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `username` varchar(50) NOT NULL,
+    `password` varchar(255) NOT NULL DEFAULT '',
+    `confirmation` varchar(255) NOT NULL DEFAULT '',
+    `tfa` varchar(255) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `username` (`username`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `auth_access` (
 	`user_id` int(10) unsigned NOT NULL,
 	`permission` varchar(30) NOT NULL,
@@ -28,16 +38,6 @@ CREATE TABLE IF NOT EXISTS `auth_token` (
 	PRIMARY KEY (`token`),
 	KEY `user_id` (`user_id`),
 	FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS `auth_user` (
-	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`username` varchar(50) NOT NULL,
-	`password` varchar(255) NOT NULL DEFAULT '',
-	`confirmation` varchar(255) NOT NULL DEFAULT '',
-	`tfa` varchar(255) NOT NULL DEFAULT '',
-	PRIMARY KEY (`id`),
-	UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `auth_pending` (

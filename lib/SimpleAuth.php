@@ -181,17 +181,17 @@ class SimpleAuth {
 		$sql = "SELECT `id` FROM `$table` WHERE `username`='$username'";
 		$query = self::$db_conn->query($sql);
 		$rs = $query->fetch_object();
-
 		$userId = $rs->id;
-		if(!self::validate_tfa_code($userId, $tfa_code)) {
-			throw new \Exception('TFA_INVALID');
-		}
 
 		$table = self::$db_pfix . 'pending';
-		$sql = "SELECT `user_id` < NOW() as `expired` FROM `$table` WHERE `username`='$username'";
+		$sql = "SELECT `expires` < NOW() as `expired` FROM `$table` WHERE `user_id`='$userId'";
 		$query = self::$db_conn->query($sql);
-		if ($query->num_rows !== 1) {
+		if ($query->num_rows !== 1 || $query->fetch_object()->expired) {
 			throw new \Exception('TFA_NOT_REQUESTED');
+		}
+
+		if(!self::validate_tfa_code($userId, $tfa_code)) {
+			throw new \Exception('TFA_INVALID');
 		}
 
 		$sql = "DELETE FROM `$table` WHERE `user_id`='$userId'";
@@ -283,10 +283,7 @@ class SimpleAuth {
 
 		$qr = null;
 		if($includeTfa){
-			if(!self::tfa_supported()){
-				throw new \Exception('TFA_NOT_SUPPORTED');
-			}
-			$tfaInfo = self::create_tfa_code((string)$userId);
+			$tfaInfo = self::create_tfa_code((string)$userId, $username);
 			$qr = $tfaInfo->qr;
 		}
 
@@ -721,7 +718,7 @@ class SimpleAuth {
 			}
 			self::$user_id = (int) $rs->user_id;
 			self::write_autologin_cookie();
-			self::update_access();
+				self::update_access();
 			self::savesession();
 			self::login_successful();
 		}
@@ -895,7 +892,7 @@ class SimpleAuth {
 	 * @return object (property: qr, hasSecret)
 	 * @throws \RobThree\Auth\TwoFactorAuthException
 	 */
-	public static function create_tfa_code(string $user_id)
+	public static function create_tfa_code(string $user_id, $username = null)
 	{
 		if(!self::tfa_supported()){
 			throw new \Exception('TFA_NOT_SUPPORTED');
@@ -914,8 +911,9 @@ class SimpleAuth {
 			self::$db_conn->query($sql);
 		}
 
+		if(!$username) $username = self::username();
 		// Display as SimpleAuth:Username
-		$label = "SimpleAuth:" . self::username();
+		$label = "SimpleAuth:" . $username;
 		$qrImgDataUri = $tfa->getQRCodeImageAsDataUri($label, $secret);
 
 		return (object) [
@@ -1004,6 +1002,6 @@ class SimpleAuth {
 			throw new \Exception('USERNAME_UNKNOWN');
 		}
 		$rs = $query->fetch_object();
-		return $rs->tfa;
+		return $rs->tfa != null;
 	}
 }

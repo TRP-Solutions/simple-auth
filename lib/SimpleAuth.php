@@ -18,6 +18,7 @@ use RobThree\Auth\TwoFactorAuth;
 class SimpleAuth {
 	private static $user_id = 0;
 	private static $access = [];
+	private static $has_tfa = null;
 	private static $db_conn = null;
 
 	// configurable variables
@@ -26,6 +27,8 @@ class SimpleAuth {
 	private static $db_pass = '';
 	private static $db_base = '';
 	private static $db_pfix = 'auth_';
+	private static $require_tfa = [];
+
 	private static $session_var = 'auth';
 	private static $lifetime = 0;
 	private static $cookie_pfix = 'auth_';
@@ -57,6 +60,7 @@ class SimpleAuth {
 		if(isset($options['db_pass'])) self::$db_pass = $options['db_pass'];
 		if(isset($options['db_base'])) self::$db_base = $options['db_base'];
 		if(isset($options['db_pfix'])) self::$db_pfix = $options['db_pfix'];
+		if(isset($options['require_tfa'])) self::$require_tfa = $options['require_tfa'];
 		if(isset($options['session_var'])) self::$session_var = $options['session_var'];
 		if(isset($options['lifetime'])) self::$lifetime = $options['lifetime'];
 		if(isset($options['cookie_pfix'])) self::$cookie_pfix = $options['cookie_pfix'];
@@ -498,6 +502,9 @@ class SimpleAuth {
 			$sql = "SELECT `permission` FROM `$table` WHERE `user_id`='$user_id'";
 			$query = self::$db_conn->query($sql);
 			while($rs = $query->fetch_object()){
+				if(in_array($rs->permission, self::$require_tfa, true)
+					&& !self::has_tfa(self::username())) continue;
+
 				self::add_access($rs->permission,false);
 			}
 		}
@@ -679,7 +686,8 @@ class SimpleAuth {
 	private static function savesession(){
 		$json = json_encode([
 			'user_id' => self::$user_id,
-			'access' => self::$access
+			'access' => self::$access,
+			'has_tfa' => self::$has_tfa
 		]);
 
 		$_SESSION[self::$session_var] = $json;
@@ -699,6 +707,7 @@ class SimpleAuth {
 			$json = json_decode($_SESSION[self::$session_var]);
 			self::$user_id = $json->user_id;
 			self::$access = $json->access;
+			self::$has_tfa = $json->has_tfa;
 		} elseif(isset($_COOKIE[self::$cookie_pfix.'autologin'])){
 			self::open_db();
 			$token = self::$db_conn->real_escape_string($_COOKIE[self::$cookie_pfix.'autologin']);
@@ -907,7 +916,7 @@ class SimpleAuth {
 			$table = self::$db_pfix.'user';
 
 			self::open_db();
-			$sql = "UPDATE `$table` SET `confirmationTfa` = '$secret' WHERE `id` = '$user_id'";
+			$sql = "UPDATE `$table` SET `confirmation_tfa` = '$secret' WHERE `id` = '$user_id'";
 			self::$db_conn->query($sql);
 		}
 
@@ -1006,25 +1015,24 @@ class SimpleAuth {
 	{
 		self::open_db();
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT `confirmationTfa` FROM `$table` WHERE `id` = '$user_id'";
+		$sql = "SELECT `confirmation_tfa` FROM `$table` WHERE `id` = '$user_id'";
 		$query = self::$db_conn->query($sql);
 		$rs = $query->fetch_object();
-		if($rs->confirmationTfa === null || $rs->confirmationTfa === "") return null;
-		return $rs->confirmationTfa;
+		if($rs->confirmation_tfa === null || $rs->confirmation_tfa === "") return null;
+		return $rs->confirmation_tfa;
 	}
 
 	/**
 	 *
-	 * Checks if the current user has 2fa enabled
+	 * Checks if the current user has 2fa enabled from the database
 	 *
 	 * @return bool if the user has 2fa enabled.
 	 */
-	public static function has_tfa($username = null)
+	public static function has_tfa_db($username = null)
 	{
 		self::open_db();
 
 		$table = self::$db_pfix . 'user';
-		$user_id = null;
 		if($username) {
 			$user_id = self::get_user_id($username);
 		} else {
@@ -1037,6 +1045,22 @@ class SimpleAuth {
 			throw new \Exception('USERNAME_UNKNOWN');
 		}
 		$rs = $query->fetch_object();
+
 		return $rs->tfa != null;
+	}
+
+	/**
+	 *
+	 * Checks if the current user has 2fa enabled from the session handler
+	 *
+	 * @return bool if the user has 2fa enabled.
+	 */
+	public static function has_tfa()
+	{
+		if(self::$has_tfa === null){
+			self::$has_tfa = self::has_tfa_db();
+			self::savesession();
+		}
+		return self::$has_tfa;
 	}
 }

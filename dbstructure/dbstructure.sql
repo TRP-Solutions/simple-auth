@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS `auth_user` (
 	`username` varchar(50) NOT NULL,
 	`password` varchar(255) NOT NULL DEFAULT '',
 	`confirmation` varchar(255) NOT NULL DEFAULT '',
-	`tfa` varchar(255) DEFAULT NULL,
-	`confirmation_tfa` varchar(255) DEFAULT NULL,
+	`tfa_secret` varchar(255) DEFAULT NULL,
+    `tfa_status` enum('disabled', 'active', 'pending', 'unused') NOT NULL DEFAULT 'disabled',
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `username` (`username`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

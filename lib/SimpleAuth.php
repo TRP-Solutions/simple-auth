@@ -127,7 +127,7 @@ class SimpleAuth {
 		$username = trim(self::$db_conn->real_escape_string($username));
 		$table = self::$db_pfix . 'user';
 
-		$sql = "SELECT `id`,`password`,`tfa` FROM `$table` WHERE `username`='$username'";
+		$sql = "SELECT `id`,`password`,`tfa_status` FROM `$table` WHERE `username`='$username'";
 		$query = self::$db_conn->query($sql);
 		if ($query->num_rows !== 1) {
 			throw new \Exception('USERNAME_UNKNOWN');
@@ -141,7 +141,7 @@ class SimpleAuth {
 		if (!password_verify($password, $rs->password)) {
 			throw new \Exception('PASSWORD_WRONG');
 		}
-		if (!empty($rs->tfa)) {
+		if ($rs->tfa_status == 'active') {
 			if(!self::tfa_supported()){
 				throw new \Exception('TFA_NOT_SUPPORTED');
 			}
@@ -911,12 +911,13 @@ class SimpleAuth {
 
 		$secret = self::load_user_tfa_secret($user_id);
 
-		if (!$secret) {
+		if (!self::has_tfa()) {
 			$secret = $tfa->createSecret(160);
 			$table = self::$db_pfix.'user';
 
 			self::open_db();
-			$sql = "UPDATE `$table` SET `confirmation_tfa` = '$secret' WHERE `id` = '$user_id'";
+			$secret_sql = self::$db_conn->real_escape_string($secret);
+			$sql = "UPDATE `$table` SET `tfa_secret` = '$secret_sql', `tfa_status` = 'pending' WHERE `id` = '$user_id'";
 			self::$db_conn->query($sql);
 		}
 
@@ -941,8 +942,11 @@ class SimpleAuth {
 	{
 		self::open_db();
 		$table = self::$db_pfix.'user';
-		$sql = "UPDATE `$table` SET tfa = NULL WHERE `id`='$user_id'";
+		$sql = "UPDATE `$table` SET `tfa_status` = 'unused' WHERE `id`='$user_id'";
 		self::$db_conn->query($sql);
+		self::$has_tfa = false;
+		self::update_access();
+		self::savesession();
 	}
 
 	/**
@@ -965,19 +969,31 @@ class SimpleAuth {
 			return false;
 		}
 		$secret = self::load_user_tfa_secret($user_id);
-		if (!$secret) {
-			$confirmationSecret = self::load_user_confirmation_tfa_secret($user_id);
-			if (!$confirmationSecret) {
+
+		$table = self::$db_pfix . 'user';
+		$sql = "SELECT `username`, `tfa_status` FROM `$table` WHERE `id` = '$user_id'";
+		$query = self::$db_conn->query($sql);
+		if ($query->num_rows > 1) {
+			throw new \Exception('USERNAME_UNKNOWN');
+		}
+		$rs = $query->fetch_object();
+
+		if ($rs->tfa_status === 'pending') {
+			if (!$secret) {
 				return false;
 			}
-			$isValid = $tfa->verifyCode($confirmationSecret, $code, 2);
+			$isValid = $tfa->verifyCode($secret, $code, 2);
 
 			if($isValid){
 				$table = self::$db_pfix.'user';
 
 				self::open_db();
-				$sql = "UPDATE `$table` SET `tfa` = '$confirmationSecret' WHERE `id` = '$user_id'";
+				$sql = "UPDATE `$table` SET `tfa_status` = 'active' WHERE `id` = '$user_id'";
 				self::$db_conn->query($sql);
+
+				self::$has_tfa = true;
+				self::update_access();
+				self::savesession();
 			}
 			return $isValid;
 		}
@@ -997,29 +1013,11 @@ class SimpleAuth {
 	{
 		self::open_db();
 		$table = self::$db_pfix.'user';
-		$sql = "SELECT `tfa` FROM `$table` WHERE `id` = '$user_id'";
+		$sql = "SELECT `tfa_secret` FROM `$table` WHERE `id` = '$user_id'";
 		$query = self::$db_conn->query($sql);
 		$rs = $query->fetch_object();
-		if($rs->tfa === null || $rs->tfa === "") return null;
-		return $rs->tfa;
-	}
-	/**
-	 *
-	 * Get user's 2fa secret from database.
-	 *
-	 * @param string $user_id User's userId.
-	 * @return string|null
-	 * @throws Exception
-	 */
-	private static function load_user_confirmation_tfa_secret(string $user_id)
-	{
-		self::open_db();
-		$table = self::$db_pfix.'user';
-		$sql = "SELECT `confirmation_tfa` FROM `$table` WHERE `id` = '$user_id'";
-		$query = self::$db_conn->query($sql);
-		$rs = $query->fetch_object();
-		if($rs->confirmation_tfa === null || $rs->confirmation_tfa === "") return null;
-		return $rs->confirmation_tfa;
+		if($rs->tfa_secret === null || $rs->tfa_secret === "") return null;
+		return $rs->tfa_secret;
 	}
 
 	/**
@@ -1039,14 +1037,14 @@ class SimpleAuth {
 			$user_id = self::$user_id;
 		}
 
-		$sql = "SELECT `username`, `tfa` FROM `$table` WHERE `id` = '$user_id'";
+		$sql = "SELECT `username`, `tfa_status` FROM `$table` WHERE `id` = '$user_id'";
 		$query = self::$db_conn->query($sql);
 		if ($query->num_rows !== 1) {
 			throw new \Exception('USERNAME_UNKNOWN');
 		}
 		$rs = $query->fetch_object();
 
-		return $rs->tfa != null;
+		return $rs->tfa_status === 'active';
 	}
 
 	/**

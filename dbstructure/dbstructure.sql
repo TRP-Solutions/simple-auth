@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `auth_user` (
 	`password` varchar(255) NOT NULL DEFAULT '',
 	`confirmation` varchar(255) NOT NULL DEFAULT '',
 	`tfa` varchar(255) DEFAULT NULL,
-	`confirmation_tfa` varchar(255) DEFAULT NULL,
+    `confirmation_tfa` tinyint(1) NOT NULL DEFAULT false,
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `username` (`username`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

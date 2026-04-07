@@ -944,6 +944,9 @@ class SimpleAuth {
 		$table = self::$db_pfix.'user';
 		$sql = "UPDATE `$table` SET `tfa_status` = 'unused' WHERE `id`='$user_id'";
 		self::$db_conn->query($sql);
+		self::$has_tfa = false;
+		self::update_access();
+		self::savesession();
 	}
 
 	/**
@@ -987,6 +990,10 @@ class SimpleAuth {
 				self::open_db();
 				$sql = "UPDATE `$table` SET `tfa_status` = 'active' WHERE `id` = '$user_id'";
 				self::$db_conn->query($sql);
+
+				self::$has_tfa = true;
+				self::update_access();
+				self::savesession();
 			}
 			return $isValid;
 		}

@@ -259,16 +259,16 @@ class SimpleAuth {
 	 * Creates a username if the inputted username is not already in use.
 	 *
 	 * @param string $username New username.
-	 * @param boolean $includeTfa Should the user have 2fa enabled.
+	 * @param boolean $include_tfa [OPTIONAL] Should the user have 2fa enabled. (default: false)
 	 * @return object The user string. (property: user_id, qr)
 	 * @throws Exception
 	 */
-	public static function create_user($username, $includeTfa){
+	public static function create_user($username, $include_tfa = false){
 		if(!$username){
 			throw new \Exception('USERNAME_NOTSET');
 		}
 
-		if($includeTfa && !self::tfa_supported()){
+		if($include_tfa && !self::tfa_supported()){
 			throw new \Exception('TFA_NOT_SUPPORTED');
 		}
 		self::open_db();
@@ -286,7 +286,7 @@ class SimpleAuth {
 		$userId = self::$db_conn->insert_id;
 
 		$qr = null;
-		if($includeTfa){
+		if($include_tfa){
 			$tfaInfo = self::create_tfa_code((string)$userId, $username);
 			$qr = $tfaInfo->qr;
 		}

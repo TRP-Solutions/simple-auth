@@ -41,6 +41,8 @@ class SimpleAuth {
 
 	private static $tfa;
 
+	private static $tfa_issuer = "SimpleAuth";
+
 	public static function tfa_supported(){
 		return class_exists('\RobThree\Auth\TwoFactorAuth')
 			&& class_exists('\Endroid\QrCode\QrCode');
@@ -70,6 +72,7 @@ class SimpleAuth {
 		if(isset($options['token_bytes'])) self::$token_bytes = $options['token_bytes'];
 		if(isset($options['charset'])) self::$charset = $options['charset'];
 		if(isset($options['onlogin'])) self::$onlogin = $options['onlogin'];
+		if(isset($options['tfa_issuer'])) self::$tfa_issuer = $options['tfa_issuer'];
 
 		if(self::$lifetime){
 			ini_set('session.gc_maxlifetime', self::$lifetime);
@@ -886,7 +889,7 @@ class SimpleAuth {
 	{
 		if (!self::$tfa) {
 			$qr  = new EndroidQrCodeProvider();
-			$tfa = new TwoFactorAuth($qr, 'SimpleAuth', 6, 30, Algorithm::Sha1);
+			$tfa = new TwoFactorAuth($qr, self::$tfa_issuer, 6, 30, Algorithm::Sha1);
 			self::$tfa = $tfa;
 		}
 		return self::$tfa;
@@ -901,7 +904,7 @@ class SimpleAuth {
 	 * @return object (property: qr, hasSecret)
 	 * @throws \RobThree\Auth\TwoFactorAuthException
 	 */
-	public static function create_tfa_code(string $user_id, $username = null, $issuer = 'SimpleAuth')
+	public static function create_tfa_code(string $user_id, $username = null)
 	{
 		if(!self::tfa_supported()){
 			throw new \Exception('TFA_NOT_SUPPORTED');
@@ -923,7 +926,7 @@ class SimpleAuth {
 
 		if(!$username) $username = self::username();
 		// Display as SimpleAuth:Username
-		$label = $issuer . ":" . $username;
+		$label = self::$tfa_issuer . ":" . $username;
 		$qrImgDataUri = $tfa->getQRCodeImageAsDataUri($label, $secret);
 
 		return (object) [

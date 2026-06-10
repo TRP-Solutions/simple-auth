@@ -6,7 +6,7 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 declare(strict_types=1);
 require_once('include.php');
 
-SimpleAuth::www_authenticate();
+\TRP\SimpleAuth\HttpService::www_authenticate();
 
 header('Content-Type: text/plain');
-echo 'user_id: '.SimpleAuth::user_id().PHP_EOL;
+echo 'user_id: '.\TRP\SimpleAuth\SimpleAuthSession::user_id().PHP_EOL;

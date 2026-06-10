@@ -2,13 +2,13 @@
 require_once('include.php');
 
 try {
-	if(!SimpleAuth::validate_tfa_code(SimpleAuth::user_id(), (string)$_POST['code'])){
+	if(!\TRP\SimpleAuth\TfaService::validate_tfa_code(new \TRP\SimpleAuth\SimpleAuthManagement(\TRP\SimpleAuth\SimpleAuthSession::user_id()), (string)$_POST['code'])){
 		header('location:qr.php?qr='.urlencode($_POST['qr']));
 		return;
 	}
 	header('location:.');
 }
 catch(\Exception $e) {
-	Ufo::call('alert',SimpleAuth::error_string($e->getMessage()));
+	Ufo::call('alert',\TRP\SimpleAuth\ErrorHandler::error_string($e->getMessage()));
 	Ufo::call('dialog_enable','<i class="fas fa-unlock"></i><span>Login</span>');
 }

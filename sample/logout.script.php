@@ -6,5 +6,5 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 declare(strict_types=1);
 require_once('include.php');
 
-SimpleAuth::logout();
+\TRP\SimpleAuth\SimpleAuthSession::logout();
 header('location:.');

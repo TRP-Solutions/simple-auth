@@ -7,13 +7,13 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	if(!SimpleAuth::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']))){
+	if(!\TRP\SimpleAuth\SimpleAuthSession::login($_POST['username'],$_POST['password'],!empty($_POST['autologin']))){
         header('location:tfa.php?username='.$_POST['username']);
         return;
     }
 	header('location:.');
 }
 catch(\Exception $e) {
-	$msg = SimpleAuth::error_string($e->getMessage());
+	$msg = \TRP\SimpleAuth\ErrorHandler::error_string($e->getMessage());
 	header('location:login.php?error='.urlencode($msg).'&username='.$_POST['username']);
 }

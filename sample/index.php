@@ -13,7 +13,7 @@ if(isset($_GET['message'])) {
 	$body->el('br');
 }
 
-if(!\TRP\SimpleAuth\SimpleAuthSession::user_id()) {
+if(!\TRP\SimpleAuth\Session::user_id()) {
 	$body->el('h3')->te('Not logged in!');
 	$body->el('a',['href'=>'login.php'])->te('Login');
 	$body->el('br');
@@ -22,7 +22,7 @@ if(!\TRP\SimpleAuth\SimpleAuthSession::user_id()) {
 	$body->el('a',['href'=>'confirmation.php'])->te('Confirm user');
 }
 else {
-	$body->el('h3')->te('user_id: '.\TRP\SimpleAuth\SimpleAuthSession::user_id());
+	$body->el('h3')->te('user_id: '.\TRP\SimpleAuth\Session::user_id());
 	$body->el('a',['href'=>'change_password.php'])->te('Change password');
 	$body->el('br');
 	$body->el('a',['href'=>'disable.script.php'])->te('Disable and Logout');
@@ -30,7 +30,7 @@ else {
 	$body->el('a',['href'=>'logout.script.php'])->te('Logout');
     $body->el('br');
 
-    if(\TRP\SimpleAuth\SimpleAuthSession::has_tfa()) {
+    if(\TRP\SimpleAuth\Session::has_tfa()) {
         $body->el('a',['href'=>'disable_tfa.script.php'])->te('Disable two factor authentication');
     }else {
         $body->el('a',['href'=>'enable_tfa.script.php'])->te('Enable two factor authentication');
@@ -43,14 +43,14 @@ if(true) {
 	$ul->el('li')->te('guest access');
 }
 
-if(\TRP\SimpleAuth\SimpleAuthSession::access('editor')) {
+if(\TRP\SimpleAuth\Session::access('editor')) {
 	$ul->el('li')->te('editor access');
 }
 
-if(\TRP\SimpleAuth\SimpleAuthSession::access('admin')) {
+if(\TRP\SimpleAuth\Session::access('admin')) {
 	$ul->el('li')->te('admin access');
 }
 
-if(\TRP\SimpleAuth\SimpleAuthSession::access('other')) {
+if(\TRP\SimpleAuth\Session::access('other')) {
 	$ul->el('li')->te('other access');
 }

@@ -10,8 +10,8 @@ require_once('../lib/require_all.php');
 
 $db = new mysqli(
 	'localhost', // host
-	'admin',      // username
-	'admin',          // password
+	'dbadmin',      // username
+	'dbadmin',          // password
 	'simpleauth' // database
 );
 
@@ -23,6 +23,6 @@ if ($db->connect_error) {
 
 \TRP\SimpleAuth\Config::configure(
 	db_conn: $db,
-	on_login: function(){\TRP\SimpleAuth\SimpleAuthSession::add_access('other');},
+	on_login: function(){\TRP\SimpleAuth\Session::add_access('other');},
 	db_pfix: "auth_"
 );

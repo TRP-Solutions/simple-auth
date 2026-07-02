@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace TRP\SimpleAuth;
 
-Class SimpleAuthManagement {
+Class Management {
 	private int $id;
 	private string $username;
 	private string $password;
@@ -124,10 +124,10 @@ Class SimpleAuthManagement {
 			throw new \Exception('PASSWORD_NOMATCH');
 		}
 
-		if(!PasswordEncoder::matches($old_password, $this->password)){
+		if(!password_verify($old_password, $this->password)){
 			throw new \Exception('PASSWORD_WRONG');
 		}
-		$password = PasswordEncoder::encode($password);
+		$password = password_hash($password, PASSWORD_DEFAULT);
 		$this->password = $password;
 
 		$table = Config::$db_pfix . 'user';
@@ -137,7 +137,7 @@ Class SimpleAuthManagement {
 	}
 
 	public function set_password(string $password) : void {
-		$password = PasswordEncoder::encode($password);
+		$password = password_hash($password, PASSWORD_DEFAULT);
 		$this->password = $password;
 
 		$table = Config::$db_pfix . 'user';

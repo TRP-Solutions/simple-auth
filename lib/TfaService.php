@@ -11,7 +11,7 @@ require_once __DIR__ . '/TfaQRCode.php';
 
 class TfaService {
 	private static ?\TRP\SimpleAuth\TfaAuthenticator $ga = null;
-	public static function create_tfa(SimpleAuthManagement $user): string
+	public static function create_tfa(Management $user): string
 	{
 		$secret = $user->get_tfa_secret();
 
@@ -45,15 +45,15 @@ class TfaService {
 		return 'data:image/png;base64,' . base64_encode($png);
 	}
 
-	public static function delete_tfa(SimpleAuthManagement $user) : void {
+	public static function delete_tfa(Management $user) : void {
 		$user->set_tfa_secret("");
 		$user->set_tfa_status(TfaStatus::UNUSED);
-		SimpleAuthSession::$has_tfa = false;
-		SimpleAuthSession::update_access();
-		SimpleAuthSession::save_session();
+		Session::$has_tfa = false;
+		Session::update_access();
+		Session::save_session();
 	}
 
-	public static function validate_tfa_code(SimpleAuthManagement $user, string $code) : bool {
+	public static function validate_tfa_code(Management $user, string $code) : bool {
 		if ($user->get_tfa_status() === TfaStatus::PENDING) {
 			if (!$user->get_tfa_secret()) {
 				$user->set_tfa_status(TfaStatus::DISABLED);
@@ -63,9 +63,9 @@ class TfaService {
 
 			if($is_valid){
 				$user->set_tfa_status(TfaStatus::ACTIVE);
-				SimpleAuthSession::$has_tfa = true;
-				SimpleAuthSession::update_access();
-				SimpleAuthSession::save_session();
+				Session::$has_tfa = true;
+				Session::update_access();
+				Session::save_session();
 			}
 			return $is_valid;
 		}

@@ -7,9 +7,14 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	\TRP\SimpleAuth\PasswordEncoder::verify($_POST['password'],$_POST['password_confirm']);
-	$user_id = \TRP\SimpleAuth\SimpleAuthSession::confirm_verify($_POST['confirmation']);
-	new \TRP\SimpleAuth\SimpleAuthManagement($user_id)->set_password($_POST['password']);
+    if(!$_POST['password']){
+        throw new \Exception('PASSWORD_NOTSET');
+    }
+    if($_POST['password_confirm'] && $_POST['password']!=$_POST['password_confirm']){
+        throw new \Exception('PASSWORD_NOMATCH');
+    }
+	$user_id = \TRP\SimpleAuth\Session::confirm_verify($_POST['confirmation']);
+	new \TRP\SimpleAuth\Management($user_id)->set_password($_POST['password']);
 
     if(!empty($_POST['qr'])){
         header('location:qr.php?qr='.urlencode($_POST['qr']));

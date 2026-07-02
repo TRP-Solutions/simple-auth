@@ -58,10 +58,10 @@ Class Config{
 		session_set_cookie_params(self::$lifetime, self::$cookie_path, null, self::$cookie_secure);
 		session_start();
 		if(self::$lifetime) {
-			setcookie(session_name(), session_id(), time()+self::$lifetime, self::$cookie_path, null, self::$cookie_secure);
+			setcookie(session_name(), session_id(), time()+self::$lifetime, self::$cookie_path, '', self::$cookie_secure);
 		}
 
-		SimpleAuthSession::load_session();
+		Session::load_session();
 
 	}
 }

@@ -7,10 +7,15 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	\TRP\SimpleAuth\PasswordEncoder::verify($_POST['password'],$_POST['password_confirm']);
-	$user_id = \TRP\SimpleAuth\SimpleAuthManagement::create($_POST['username']);
+    if(!$_POST['password']){
+        throw new \Exception('PASSWORD_NOTSET');
+    }
+    if($_POST['password_confirm'] && $_POST['password']!=$_POST['password_confirm']){
+        throw new \Exception('PASSWORD_NOMATCH');
+    }
+	$user_id = \TRP\SimpleAuth\Management::create($_POST['username']);
 
-	$ha_result = \TRP\SimpleAuth\SimpleAuthSession::confirm_hash($user_id);
+	$ha_result = \TRP\SimpleAuth\Session::confirm_hash($user_id);
 
 	// Don't use GET variables in production code.
 	header('location:confirmation.php?confirmation='.urlencode($ha_result->confirmation));

@@ -7,7 +7,7 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	new \TRP\SimpleAuth\SimpleAuthManagement(\TRP\SimpleAuth\SimpleAuthSession::user_id())->update_password($_POST['password'], $_POST['password_current'], $_POST['password_confirm']);
+	new \TRP\SimpleAuth\Management(\TRP\SimpleAuth\Session::user_id())->update_password($_POST['password'], $_POST['password_current'], $_POST['password_confirm']);
 	header('location:.?message='.urlencode('Password changed'));
 }
 catch(\Exception $e) {

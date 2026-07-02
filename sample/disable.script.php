@@ -7,7 +7,7 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	\TRP\SimpleAuth\SimpleAuthManagement::disable(\TRP\SimpleAuth\SimpleAuthSession::user_id());
+	\TRP\SimpleAuth\Management::disable(\TRP\SimpleAuth\Session::user_id());
 }
 catch(\Exception $e) {
 	$msg = \TRP\SimpleAuth\ErrorHandler::error_string($e->getMessage());
@@ -15,5 +15,5 @@ catch(\Exception $e) {
 	exit;
 }
 
-\TRP\SimpleAuth\SimpleAuthSession::logout();
+\TRP\SimpleAuth\Session::logout();
 header('location:.');

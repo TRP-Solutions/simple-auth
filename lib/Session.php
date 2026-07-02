@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace TRP\SimpleAuth;
 
-Class SimpleAuthSession {
+Class Session {
 	private static bool $has_loaded_session = false;
 	private static int $user_id = 0;
 	private static array $access = [];
@@ -73,7 +73,7 @@ Class SimpleAuthSession {
 			throw new \Exception('TFA_NOT_REQUESTED');
 		}
 
-		if(!TfaService::validate_tfa_code(new SimpleAuthManagement($userId), $tfa_code)) {
+		if(!TfaService::validate_tfa_code(new Management($userId), $tfa_code)) {
 			throw new \Exception('TFA_INVALID');
 		}
 
@@ -174,7 +174,7 @@ Class SimpleAuthSession {
 		$_SESSION[Config::$session_var] = $json;
 	}
 
-	// Maybe move this into SimpleAuthManagement
+	// Maybe move this into Management
 	public static function confirm_hash(int $user_id) : object {
 		$table = Config::$db_pfix.'user';
 		$sql = "SELECT `username` FROM `$table` WHERE `id`='$user_id'";
@@ -194,7 +194,7 @@ Class SimpleAuthSession {
 		return (object) ['confirmation'=>$confirmation];
 	}
 
-	// Maybe move this into SimpleAuthManagement
+	// Maybe move this into Management
 	public static function confirm_verify(string $confirmation) : int {
 		$str = base64_decode($confirmation);
 		if($str===false){
@@ -289,4 +289,27 @@ Class SimpleAuthSession {
 			(Config::$on_login)();
 		}
 	}
+
+    public static function www_authenticate(string $realm = 'SimpleAuth Login') : void {
+        if(Session::user_id()) {
+            return;
+        }
+        if(empty($_SERVER['PHP_AUTH_USER']) || empty($_SERVER['PHP_AUTH_PW'])) {
+            self::www_dialog($realm);
+        }
+        else {
+            try {
+                Session::login($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW'], false);
+            }
+            catch(\Exception $e){
+                self::www_dialog($realm,ErrorHandler::error_string($e->getMessage()));
+            }
+        }
+    }
+    public static function www_dialog(string $realm, string $message = 'Unauthorized') : void {
+        header('WWW-Authenticate: Basic realm="'.$realm.'", charset="UTF-8"');
+        header('HTTP/1.1 401 '.$message);
+        echo $message;
+        exit;
+    }
 }

@@ -2,7 +2,7 @@
 require_once('include.php');
 
 try {
-	if(!\TRP\SimpleAuth\TfaService::validate_tfa_code(new \TRP\SimpleAuth\SimpleAuthManagement(\TRP\SimpleAuth\SimpleAuthSession::user_id()), (string)$_POST['code'])){
+	if(!\TRP\SimpleAuth\TfaService::validate_tfa_code(new \TRP\SimpleAuth\Management(\TRP\SimpleAuth\Session::user_id()), (string)$_POST['code'])){
 		header('location:qr.php?qr='.urlencode($_POST['qr']));
 		return;
 	}

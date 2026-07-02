@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	\TRP\SimpleAuth\SimpleAuthSession::validate_tfa_code($_POST['username'],$_POST['totp'], true);
+	\TRP\SimpleAuth\Session::validate_tfa_code($_POST['username'],$_POST['totp'], true);
     header('location:.');
 }
 catch(\Exception $e) {

@@ -6,7 +6,7 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 declare(strict_types=1);
 require_once('include.php');
 
-if(SimpleAuth::user_id()) {
+if(\TRP\SimpleAuth\Session::user_id()) {
 	header('location:.');
 	exit;
 }

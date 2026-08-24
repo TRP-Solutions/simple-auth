@@ -7,9 +7,14 @@ declare(strict_types=1);
 require_once('include.php');
 
 try {
-	SimpleAuth::verify_password($_POST['password'],$_POST['password_confirm']);
-	$result = SimpleAuth::confirm_verify($_POST['confirmation']);
-	SimpleAuth::change_password($_POST['password'],$result->user_id);
+    if(!$_POST['password']){
+        throw new \Exception('PASSWORD_NOTSET');
+    }
+    if($_POST['password_confirm'] && $_POST['password']!=$_POST['password_confirm']){
+        throw new \Exception('PASSWORD_NOMATCH');
+    }
+	$user_id = \TRP\SimpleAuth\Session::confirm_verify($_POST['confirmation']);
+	new \TRP\SimpleAuth\Management($user_id)->set_password($_POST['password']);
 
     if(!empty($_POST['qr'])){
         header('location:qr.php?qr='.urlencode($_POST['qr']));
@@ -18,7 +23,7 @@ try {
     header('location:.');
 }
 catch(\Exception $e) {
-	$msg = SimpleAuth::error_string($e->getMessage());
+	$msg = \TRP\SimpleAuth\ErrorHandler::error_string($e->getMessage());
     if(!empty($_POST['qr'])){
         header('location:confirmation.php?error='.urlencode($msg).'&qr='.urlencode($_POST['qr']).'&confirmation='.urlencode($_POST['confirmation']));
         return;

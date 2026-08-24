@@ -6,12 +6,23 @@ https://github.com/TRP-Solutions/simple-auth/blob/master/LICENSE
 declare(strict_types=1);
 require_once('../../heal-document/lib/HealDocument.php'); // https://github.com/TRP-Solutions/heal-document
 require_once('design.php');
-require_once('../lib/SimpleAuth.php');
+require_once('../lib/require_all.php');
 
-SimpleAuth::configure([
-	'db_user' => 'simpleauth',
-	'db_pass' => 'mysqlnimda',
-	'db_base' => 'simpleauth',
-	'onlogin' => function(){SimpleAuth::add_access('other');},
-	'autologin_secure' => false
-]);
+$db = new mysqli(
+	'localhost', // host
+	'dbadmin',      // username
+	'dbadmin',          // password
+	'simpleauth' // database
+);
+
+if ($db->connect_error) {
+	throw new RuntimeException(
+		'Database connection failed: ' . $db->connect_error
+	);
+}
+
+\TRP\SimpleAuth\Config::configure(
+	db_conn: $db,
+	on_login: function(){\TRP\SimpleAuth\Session::add_access('other');},
+	db_pfix: "auth_"
+);
